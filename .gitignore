@@ -1,0 +1,9 @@
+target/
+*.class
+.idea/
+*.iml
+.vscode/
+dependency-reduced-pom.xml
+*.jar
+dist/
+node_modules/
