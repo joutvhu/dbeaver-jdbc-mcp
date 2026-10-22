@@ -11,6 +11,7 @@ import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.server.McpSyncServer;
 import io.modelcontextprotocol.server.transport.StdioServerTransportProvider;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.Implementation;
 import io.modelcontextprotocol.spec.McpSchema.ServerCapabilities;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
@@ -30,8 +31,17 @@ public class McpServer {
 
         StdioServerTransportProvider transportProvider = new StdioServerTransportProvider(McpJsonDefaults.getMapper());
 
+        Implementation serverInfo = Implementation.builder("dbeaver-database", "1.0.0")
+                .title("DBeaver Database MCP Server")
+                .description("Model Context Protocol server for DBeaver with dynamic JDBC driver loading, supporting all DBeaver database connections.")
+                .websiteUrl("https://github.com/joutvhu/dbeaver-mcp")
+                .build();
+
+        String instructions = "Access and interact with any database configured in DBeaver (PostgreSQL, MySQL, SQL Server, Oracle, SQLite, Snowflake, ClickHouse, etc.) using DBeaver's native JDBC drivers. Use 'list_connections' first to discover configured connections, 'list_tables' and 'describe_table' to inspect schemas, and 'query' to execute read-only queries safely.";
+
         McpSyncServer syncServer = io.modelcontextprotocol.server.McpServer.sync(transportProvider)
-                .serverInfo("dbeaver-database", "1.0.0")
+                .serverInfo(serverInfo)
+                .instructions(instructions)
                 .capabilities(ServerCapabilities.builder()
                         .tools(false)
                         .build())
