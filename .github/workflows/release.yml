@@ -54,7 +54,7 @@ jobs:
           # Update Maven version using wrapper
           ./mvnw versions:set -DnewVersion=${VERSION} -DgenerateBackupPoms=false
           # Update NPM package.json version in root
-          npm version ${VERSION} --no-git-tag-version
+          npm version ${VERSION} --allow-same-version --no-git-tag-version
 
       - name: Build Fat JAR with Maven Wrapper
         run: |
