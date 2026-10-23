@@ -92,18 +92,27 @@ jobs:
       # 2. Publish to NPM Registry (npx dbeaver-jdbc-mcp) from Root
       # -------------------------------------------------------------
       - name: Publish to NPM
-        if: ${{ secrets.NPM_TOKEN != '' }}
-        run: npm publish --access public
+        run: |
+          if [ -n "$NODE_AUTH_TOKEN" ]; then
+            echo "Publishing to NPM..."
+            npm publish --access public
+          else
+            echo "::notice::NPM_TOKEN secret is not set. Skipping NPM publish."
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # -------------------------------------------------------------
       # 3. Publish to Maven Central (Optional if secrets are set)
       # -------------------------------------------------------------
       - name: Publish to Maven Central
-        if: ${{ secrets.OSSRH_USERNAME != '' }}
-        run: ./mvnw clean deploy -P release -DskipTests
+        run: |
+          if [ -n "$MAVEN_USERNAME" ] && [ -n "$MAVEN_PASSWORD" ]; then
+            echo "Publishing to Maven Central..."
+            ./mvnw clean deploy -P release -DskipTests
+          else
+            echo "::notice::OSSRH secrets are not set. Skipping Maven Central publish."
+          fi
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
