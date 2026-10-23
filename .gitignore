@@ -7,3 +7,4 @@ dependency-reduced-pom.xml
 *.jar
 dist/
 node_modules/
+*.tgz

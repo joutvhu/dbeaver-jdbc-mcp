@@ -7,7 +7,8 @@
     "dbeaver-jdbc-mcp": "bin/index.js"
   },
   "scripts": {
-    "start": "node bin/index.js"
+    "start": "node bin/index.js",
+    "publish:local": "node scripts/publish-local.js"
   },
   "repository": {
     "type": "git",

@@ -97,6 +97,16 @@ Requirements: JDK 17+ (No need to install Maven, as the Maven Wrapper is include
 ```
 This generates the standalone Fat JAR at `dbeaver-jdbc-mcp.jar` (and in `target/dbeaver-jdbc-mcp.jar`).
 
+### 🧪 Publish & Test Locally (Install to `npm -g`)
+
+To test the package locally as a real global CLI tool:
+
+```bash
+npm run publish:local
+```
+
+Script automatically builds the Fat JAR, packages it, and installs it directly into `npm -g`. You can then run `dbeaver-jdbc-mcp` from anywhere or configure `"command": "dbeaver-jdbc-mcp"` in your `mcp.json`. (To uninstall: `npm uninstall -g dbeaver-jdbc-mcp`).
+
 ---
 
 ## 🛠 Available Tools
