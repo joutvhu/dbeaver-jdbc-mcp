@@ -41,6 +41,19 @@ fs.copyFileSync(targetJar, rootJar);
 console.log('Copied ' + targetJar + ' -> ' + rootJar);
 
 console.log('\n=== [3/3] Installing into global npm directory (npm install -g) ===');
+
+// On Windows, if an MCP server or client is running dbeaver-jdbc-mcp.jar, the file is locked (EBUSY).
+// Automatically stop any lingering instances before reinstalling.
+try {
+    if (isWindows) {
+        const script = "Get-CimInstance Win32_Process | Where-Object CommandLine -match 'dbeaver-jdbc-mcp\\.jar' | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }";
+        const encoded = Buffer.from(script, 'utf16le').toString('base64');
+        execSync('powershell.exe -NoProfile -EncodedCommand ' + encoded, { stdio: 'ignore' });
+    } else {
+        execSync('pkill -f dbeaver-jdbc-mcp.jar || true', { stdio: 'ignore' });
+    }
+} catch (e) {}
+
 let tarballPath = '';
 try {
     const packOutput = execSync('npm pack', {

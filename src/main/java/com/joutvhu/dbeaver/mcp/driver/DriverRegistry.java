@@ -1,4 +1,4 @@
-package com.dbeaver.mcp.driver;
+package com.joutvhu.dbeaver.mcp.driver;
 
 import java.io.BufferedReader;
 import java.io.File;

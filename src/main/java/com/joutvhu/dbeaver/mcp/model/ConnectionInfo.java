@@ -1,4 +1,4 @@
-package com.dbeaver.mcp.model;
+package com.joutvhu.dbeaver.mcp.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 

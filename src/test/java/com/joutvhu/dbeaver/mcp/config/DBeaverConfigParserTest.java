@@ -1,6 +1,6 @@
-package com.dbeaver.mcp.config;
+package com.joutvhu.dbeaver.mcp.config;
 
-import com.dbeaver.mcp.model.ConnectionInfo;
+import com.joutvhu.dbeaver.mcp.model.ConnectionInfo;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;

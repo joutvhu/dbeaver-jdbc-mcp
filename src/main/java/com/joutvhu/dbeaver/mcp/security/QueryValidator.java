@@ -1,4 +1,4 @@
-package com.dbeaver.mcp.security;
+package com.joutvhu.dbeaver.mcp.security;
 
 import java.util.Arrays;
 import java.util.List;

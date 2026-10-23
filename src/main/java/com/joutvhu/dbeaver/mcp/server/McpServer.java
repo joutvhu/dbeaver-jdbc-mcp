@@ -1,10 +1,10 @@
-package com.dbeaver.mcp.server;
+package com.joutvhu.dbeaver.mcp.server;
 
-import com.dbeaver.mcp.config.DBeaverConfigParser;
-import com.dbeaver.mcp.db.DatabaseService;
-import com.dbeaver.mcp.driver.DriverRegistry;
-import com.dbeaver.mcp.model.ConnectionInfo;
-import com.dbeaver.mcp.security.QueryValidator;
+import com.joutvhu.dbeaver.mcp.config.DBeaverConfigParser;
+import com.joutvhu.dbeaver.mcp.db.DatabaseService;
+import com.joutvhu.dbeaver.mcp.driver.DriverRegistry;
+import com.joutvhu.dbeaver.mcp.model.ConnectionInfo;
+import com.joutvhu.dbeaver.mcp.security.QueryValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.modelcontextprotocol.json.McpJsonDefaults;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;

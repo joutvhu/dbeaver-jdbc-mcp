@@ -1,6 +1,6 @@
-package com.dbeaver.mcp;
+package com.joutvhu.dbeaver.mcp;
 
-import com.dbeaver.mcp.server.McpServer;
+import com.joutvhu.dbeaver.mcp.server.McpServer;
 
 public class Main {
     public static void main(String[] args) {

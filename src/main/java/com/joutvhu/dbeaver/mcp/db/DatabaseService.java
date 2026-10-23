@@ -1,8 +1,8 @@
-package com.dbeaver.mcp.db;
+package com.joutvhu.dbeaver.mcp.db;
 
-import com.dbeaver.mcp.driver.DriverRegistry;
-import com.dbeaver.mcp.model.ConnectionInfo;
-import com.dbeaver.mcp.security.QueryValidator;
+import com.joutvhu.dbeaver.mcp.driver.DriverRegistry;
+import com.joutvhu.dbeaver.mcp.model.ConnectionInfo;
+import com.joutvhu.dbeaver.mcp.security.QueryValidator;
 
 import java.sql.*;
 import java.util.*;

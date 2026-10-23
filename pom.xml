@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.joutvhu</groupId>
+    <groupId>com.github.joutvhu</groupId>
     <artifactId>dbeaver-jdbc-mcp</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -132,7 +132,7 @@
                             <shadedArtifactAttached>false</shadedArtifactAttached>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.dbeaver.mcp.Main</mainClass>
+                                    <mainClass>com.joutvhu.dbeaver.mcp.Main</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

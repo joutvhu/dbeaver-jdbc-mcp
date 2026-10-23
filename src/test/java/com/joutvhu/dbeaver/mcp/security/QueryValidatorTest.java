@@ -1,4 +1,4 @@
-package com.dbeaver.mcp.security;
+package com.joutvhu.dbeaver.mcp.security;
 
 import org.junit.jupiter.api.Test;
 

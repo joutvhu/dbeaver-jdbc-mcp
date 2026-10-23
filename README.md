@@ -44,7 +44,7 @@ If you have `jbang` installed:
   "mcpServers": {
     "dbeaver": {
       "command": "jbang",
-      "args": ["run", "io.github.joutvhu:dbeaver-jdbc-mcp:1.0.0"]
+      "args": ["run", "com.github.joutvhu:dbeaver-jdbc-mcp:1.0.0"]
     }
   }
 }

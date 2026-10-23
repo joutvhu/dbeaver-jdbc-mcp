@@ -1,6 +1,6 @@
-package com.dbeaver.mcp.config;
+package com.joutvhu.dbeaver.mcp.config;
 
-import com.dbeaver.mcp.model.ConnectionInfo;
+import com.joutvhu.dbeaver.mcp.model.ConnectionInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

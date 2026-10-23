@@ -1,4 +1,4 @@
-package com.dbeaver.mcp.server;
+package com.joutvhu.dbeaver.mcp.server;
 
 import org.junit.jupiter.api.Test;
 
