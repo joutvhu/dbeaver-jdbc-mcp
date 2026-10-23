@@ -60,18 +60,18 @@ jobs:
         run: |
           ./mvnw clean package -DskipTests
           # Copy shaded jar to root folder for npm packaging
-          cp target/dbeaver-mcp.jar dbeaver-mcp.jar
+          cp target/dbeaver-jdbc-mcp.jar dbeaver-jdbc-mcp.jar
           chmod +x bin/index.js
 
       - name: Create Portable Zip for GitHub Release
         run: |
           mkdir -p dist
-          cp target/dbeaver-mcp.jar dist/
-          cp dbeaver-mcp.cmd dist/
-          cp dbeaver-mcp.sh dist/
-          chmod +x dist/dbeaver-mcp.sh
+          cp target/dbeaver-jdbc-mcp.jar dist/
+          cp dbeaver-jdbc-mcp.cmd dist/
+          cp dbeaver-jdbc-mcp.sh dist/
+          chmod +x dist/dbeaver-jdbc-mcp.sh
           cd dist
-          zip -r ../dbeaver-mcp-${{ steps.get_version.outputs.VERSION }}-portable.zip .
+          zip -r ../dbeaver-jdbc-mcp-${{ steps.get_version.outputs.VERSION }}-portable.zip .
           cd ..
 
       # -------------------------------------------------------------
@@ -81,15 +81,15 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            target/dbeaver-mcp.jar
-            dbeaver-mcp-${{ steps.get_version.outputs.VERSION }}-portable.zip
-            dbeaver-mcp.cmd
-            dbeaver-mcp.sh
+            target/dbeaver-jdbc-mcp.jar
+            dbeaver-jdbc-mcp-${{ steps.get_version.outputs.VERSION }}-portable.zip
+            dbeaver-jdbc-mcp.cmd
+            dbeaver-jdbc-mcp.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # -------------------------------------------------------------
-      # 2. Publish to NPM Registry (npx dbeaver-mcp) from Root
+      # 2. Publish to NPM Registry (npx dbeaver-jdbc-mcp) from Root
       # -------------------------------------------------------------
       - name: Publish to NPM
         if: ${{ secrets.NPM_TOKEN != '' }}

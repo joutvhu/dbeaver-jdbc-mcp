@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.joutvhu</groupId>
-    <artifactId>dbeaver-mcp</artifactId>
+    <artifactId>dbeaver-jdbc-mcp</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>DBeaver MCP Server</name>
+    <name>DBeaver JDBC MCP Server</name>
     <description>Model Context Protocol (MCP) server for DBeaver with dynamic JDBC driver loading</description>
-    <url>https://github.com/joutvhu/dbeaver-mcp</url>
+    <url>https://github.com/joutvhu/dbeaver-jdbc-mcp</url>
 
     <licenses>
         <license>
@@ -29,9 +29,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/joutvhu/dbeaver-mcp.git</connection>
-        <developerConnection>scm:git:ssh://github.com:joutvhu/dbeaver-mcp.git</developerConnection>
-        <url>https://github.com/joutvhu/dbeaver-mcp/tree/main</url>
+        <connection>scm:git:git://github.com/joutvhu/dbeaver-jdbc-mcp.git</connection>
+        <developerConnection>scm:git:ssh://github.com:joutvhu/dbeaver-jdbc-mcp.git</developerConnection>
+        <url>https://github.com/joutvhu/dbeaver-jdbc-mcp/tree/main</url>
     </scm>
 
     <properties>
@@ -89,7 +89,7 @@
     </dependencies>
 
     <build>
-        <finalName>dbeaver-mcp</finalName>
+        <finalName>dbeaver-jdbc-mcp</finalName>
         <plugins>
             <!-- Compiler plugin -->
             <plugin>

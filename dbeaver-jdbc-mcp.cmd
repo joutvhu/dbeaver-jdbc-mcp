@@ -3,12 +3,12 @@ setlocal enabledelayedexpansion
 
 REM Resolve directory of this script
 set "SCRIPT_DIR=%~dp0"
-set "JAR_PATH=%SCRIPT_DIR%dbeaver-mcp.jar"
-if not exist "%JAR_PATH%" set "JAR_PATH=%SCRIPT_DIR%target\dbeaver-mcp.jar"
+set "JAR_PATH=%SCRIPT_DIR%dbeaver-jdbc-mcp.jar"
+if not exist "%JAR_PATH%" set "JAR_PATH=%SCRIPT_DIR%target\dbeaver-jdbc-mcp.jar"
 
 if not exist "%JAR_PATH%" (
-    echo [ERROR] Could not find dbeaver-mcp.jar in %SCRIPT_DIR% >&2
-    echo Please make sure dbeaver-mcp.jar is placed in the same directory as this script, or run "mvn package" first. >&2
+    echo [ERROR] Could not find dbeaver-jdbc-mcp.jar in %SCRIPT_DIR% >&2
+    echo Please make sure dbeaver-jdbc-mcp.jar is placed in the same directory as this script, or run "mvn package" first. >&2
     exit /b 1
 )
 

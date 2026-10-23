@@ -134,7 +134,7 @@ public class McpServer {
         Implementation serverInfo = Implementation.builder("dbeaver-database", serverVersion)
                 .title("DBeaver Database MCP Server")
                 .description("Model Context Protocol server for DBeaver with dynamic JDBC driver loading, supporting all DBeaver database connections.")
-                .websiteUrl("https://github.com/joutvhu/dbeaver-mcp")
+                .websiteUrl("https://github.com/joutvhu/dbeaver-jdbc-mcp")
                 .build();
 
         String instructions = "Access and interact with any database configured in DBeaver (PostgreSQL, MySQL, SQL Server, Oracle, SQLite, Snowflake, ClickHouse, etc.) using DBeaver's native JDBC drivers. Use 'list_connections' first to discover configured connections, 'list_tables' and 'describe_table' to inspect schemas, and 'query' to execute read-only queries safely.";

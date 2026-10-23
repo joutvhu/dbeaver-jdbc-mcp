@@ -88,18 +88,18 @@ function findJavaExecutable() {
 
 function resolveJarPath() {
     // 1. Check root directory (NPM package distribution)
-    const rootJar = path.join(__dirname, '..', 'dbeaver-mcp.jar');
+    const rootJar = path.join(__dirname, '..', 'dbeaver-jdbc-mcp.jar');
     if (fs.existsSync(rootJar)) {
         return rootJar;
     }
 
     // 2. Check target folder (maven local build output)
-    const targetJar = path.join(__dirname, '..', 'target', 'dbeaver-mcp.jar');
+    const targetJar = path.join(__dirname, '..', 'target', 'dbeaver-jdbc-mcp.jar');
     if (fs.existsSync(targetJar)) {
         return targetJar;
     }
 
-    throw new Error('dbeaver-mcp.jar not found. Please run "mvn package" first.');
+    throw new Error('dbeaver-jdbc-mcp.jar not found. Please run "mvn package" first.');
 }
 
 function main() {
@@ -114,8 +114,8 @@ function main() {
     });
 
     child.on('error', (err) => {
-        console.error(`[dbeaver-mcp] Failed to spawn Java process: ${err.message}`);
-        console.error(`[dbeaver-mcp] Please verify that Java or DBeaver is installed.`);
+        console.error(`[dbeaver-jdbc-mcp] Failed to spawn Java process: ${err.message}`);
+        console.error(`[dbeaver-jdbc-mcp] Please verify that Java or DBeaver is installed.`);
         process.exit(1);
     });
 

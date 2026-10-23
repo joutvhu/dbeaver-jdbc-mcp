@@ -2,13 +2,13 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-JAR_PATH="$SCRIPT_DIR/dbeaver-mcp.jar"
+JAR_PATH="$SCRIPT_DIR/dbeaver-jdbc-mcp.jar"
 if [ ! -f "$JAR_PATH" ]; then
-    JAR_PATH="$SCRIPT_DIR/target/dbeaver-mcp.jar"
+    JAR_PATH="$SCRIPT_DIR/target/dbeaver-jdbc-mcp.jar"
 fi
 
 if [ ! -f "$JAR_PATH" ]; then
-    echo "[ERROR] Could not find dbeaver-mcp.jar in $SCRIPT_DIR" >&2
+    echo "[ERROR] Could not find dbeaver-jdbc-mcp.jar in $SCRIPT_DIR" >&2
     exit 1
 fi
 

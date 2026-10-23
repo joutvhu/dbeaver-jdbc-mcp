@@ -1,17 +1,17 @@
 {
-  "name": "dbeaver-mcp",
+  "name": "dbeaver-jdbc-mcp",
   "version": "1.0.0",
   "description": "Model Context Protocol (MCP) server for DBeaver database connections with dynamic JDBC driver loading",
   "main": "bin/index.js",
   "bin": {
-    "dbeaver-mcp": "bin/index.js"
+    "dbeaver-jdbc-mcp": "bin/index.js"
   },
   "scripts": {
     "start": "node bin/index.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/joutvhu/dbeaver-mcp.git"
+    "url": "git+https://github.com/joutvhu/dbeaver-jdbc-mcp.git"
   },
   "keywords": [
     "mcp",
@@ -27,15 +27,15 @@
   "author": "Giao Ho <joutvhu@gmail.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/joutvhu/dbeaver-mcp/issues"
+    "url": "https://github.com/joutvhu/dbeaver-jdbc-mcp/issues"
   },
-  "homepage": "https://github.com/joutvhu/dbeaver-mcp#readme",
+  "homepage": "https://github.com/joutvhu/dbeaver-jdbc-mcp#readme",
   "engines": {
     "node": ">=16.0.0"
   },
   "files": [
     "bin/",
-    "dbeaver-mcp.jar",
+    "dbeaver-jdbc-mcp.jar",
     "README.md",
     "LICENSE"
   ]

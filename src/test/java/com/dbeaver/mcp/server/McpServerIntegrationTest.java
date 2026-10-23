@@ -11,9 +11,9 @@ public class McpServerIntegrationTest {
 
     @Test
     public void testServerStdioFlow() throws Exception {
-        String jarPath = "target/dbeaver-mcp.jar";
+        String jarPath = "target/dbeaver-jdbc-mcp.jar";
         if (!new File(jarPath).exists()) {
-            jarPath = "dbeaver-mcp.jar";
+            jarPath = "dbeaver-jdbc-mcp.jar";
         }
         if (!new File(jarPath).exists()) {
             System.err.println("Skipping testServerStdioFlow as jar is not built yet.");

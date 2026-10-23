@@ -1,8 +1,8 @@
-# DBeaver MCP Server
+# DBeaver JDBC MCP Server
 
 A high-performance, universal Model Context Protocol (MCP) server built with the **official Model Context Protocol Java SDK (`io.modelcontextprotocol.sdk:mcp`)** that connects AI assistants (Kiro, Claude Desktop, Cursor, etc.) directly to all database connections configured in **DBeaver**.
 
-Unlike traditional MCP servers that require separate Python drivers, C++ build tools, or ODBC libraries for each database type, **dbeaver-mcp** runs natively on Java and **reuses the exact JDBC drivers already downloaded and managed by DBeaver**.
+Unlike traditional MCP servers that require separate Python drivers, C++ build tools, or ODBC libraries for each database type, **dbeaver-jdbc-mcp** runs natively on Java and **reuses the exact JDBC drivers already downloaded and managed by DBeaver**.
 
 ---
 
@@ -18,7 +18,7 @@ Unlike traditional MCP servers that require separate Python drivers, C++ build t
 
 ## 🚀 Easy Ways to Install & Run
 
-You can choose any of the 3 standard options below to configure `dbeaver-mcp` in your AI client (e.g. `mcp.json` in Kiro, Claude Desktop, or Cursor):
+You can choose any of the 3 standard options below to configure `dbeaver-jdbc-mcp` in your AI client (e.g. `mcp.json` in Kiro, Claude Desktop, or Cursor):
 
 ### Option 1: Run directly via `npx` (Recommended - Zero Installation)
 No manual download required. Just add to your `mcp.json`:
@@ -28,7 +28,7 @@ No manual download required. Just add to your `mcp.json`:
   "mcpServers": {
     "dbeaver": {
       "command": "npx",
-      "args": ["-y", "dbeaver-mcp"]
+      "args": ["-y", "dbeaver-jdbc-mcp"]
     }
   }
 }
@@ -44,7 +44,7 @@ If you have `jbang` installed:
   "mcpServers": {
     "dbeaver": {
       "command": "jbang",
-      "args": ["run", "io.github.joutvhu:dbeaver-mcp:1.0.0"]
+      "args": ["run", "io.github.joutvhu:dbeaver-jdbc-mcp:1.0.0"]
     }
   }
 }
@@ -53,7 +53,7 @@ If you have `jbang` installed:
 ---
 
 ### Option 3: Download Portable ZIP from GitHub Releases
-1. Download `dbeaver-mcp-x.x.x-portable.zip` from the **GitHub Releases** page.
+1. Download `dbeaver-jdbc-mcp-x.x.x-portable.zip` from the **GitHub Releases** page.
 2. Extract it anywhere on your machine.
 3. Configure your `mcp.json`:
 
@@ -62,7 +62,7 @@ If you have `jbang` installed:
 {
   "mcpServers": {
     "dbeaver": {
-      "command": "C:\\path\\to\\dbeaver-mcp\\dbeaver-mcp.cmd"
+      "command": "C:\\path\\to\\dbeaver-jdbc-mcp\\dbeaver-jdbc-mcp.cmd"
     }
   }
 }
@@ -73,7 +73,7 @@ If you have `jbang` installed:
 {
   "mcpServers": {
     "dbeaver": {
-      "command": "/path/to/dbeaver-mcp/dbeaver-mcp.sh"
+      "command": "/path/to/dbeaver-jdbc-mcp/dbeaver-jdbc-mcp.sh"
     }
   }
 }
@@ -95,7 +95,7 @@ Requirements: JDK 17+ (No need to install Maven, as the Maven Wrapper is include
 ```bash
 ./mvnw clean package
 ```
-This generates the standalone Fat JAR at `dbeaver-mcp.jar` (and in `target/dbeaver-mcp.jar`).
+This generates the standalone Fat JAR at `dbeaver-jdbc-mcp.jar` (and in `target/dbeaver-jdbc-mcp.jar`).
 
 ---
 
@@ -145,8 +145,8 @@ All settings can be customized using environment variables:
 
 This project includes a continuous delivery pipeline in `.github/workflows/release.yml`. Whenever you create and publish a new **Release** on GitHub (e.g. tagging `v1.0.0` and clicking **Publish release**):
 1. Runs tests and builds the official Fat JAR.
-2. Automatically uploads `dbeaver-mcp.jar`, portable zip, `.cmd`, and `.sh` assets to that GitHub Release.
-3. Automatically publishes the package to the **NPM Registry** (`npx dbeaver-mcp`).
+2. Automatically uploads `dbeaver-jdbc-mcp.jar`, portable zip, `.cmd`, and `.sh` assets to that GitHub Release.
+3. Automatically publishes the package to the **NPM Registry** (`npx dbeaver-jdbc-mcp`).
 4. Signs and deploys artifacts to **Maven Central** (when Sonatype / GPG secrets are configured).
 
 ---
