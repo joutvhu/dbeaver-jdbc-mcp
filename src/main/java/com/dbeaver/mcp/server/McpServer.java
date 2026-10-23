@@ -36,22 +36,51 @@ public class McpServer {
         CountDownLatch closeLatch = new CountDownLatch(1);
 
         InputStream wrappedIn = new FilterInputStream(System.in) {
+            private boolean atLineStart = true;
+
             @Override
             public int read() throws IOException {
-                int b = super.read();
-                if (b == -1) {
-                    closeLatch.countDown();
+                while (true) {
+                    int b = super.read();
+                    if (b == -1) {
+                        closeLatch.countDown();
+                        return -1;
+                    }
+                    if (atLineStart && (b == '\r' || b == '\n' || b == ' ' || b == '\t')) {
+                        // Skip blank lines / leading whitespace between JSON-RPC messages
+                        continue;
+                    }
+                    if (b == '\n') {
+                        atLineStart = true;
+                    } else if (b != '\r') {
+                        atLineStart = false;
+                    }
+                    return b;
                 }
-                return b;
             }
 
             @Override
             public int read(byte[] b, int off, int len) throws IOException {
-                int n = super.read(b, off, len);
-                if (n == -1) {
-                    closeLatch.countDown();
+                if (len <= 0) return 0;
+                int first = read();
+                if (first == -1) return -1;
+                b[off] = (byte) first;
+                int count = 1;
+                if (first == '\n') {
+                    return 1;
                 }
-                return n;
+                while (count < len) {
+                    int next = read();
+                    if (next == -1) {
+                        break;
+                    }
+                    b[off + count] = (byte) next;
+                    count++;
+                    if (next == '\n') {
+                        break;
+                    }
+                }
+                return count;
             }
 
             @Override
@@ -65,7 +94,37 @@ public class McpServer {
                 McpJsonDefaults.getMapper(),
                 wrappedIn,
                 System.out
-        );
+        ) {
+            @Override
+            public void setSessionFactory(io.modelcontextprotocol.spec.McpServerSession.Factory factory) {
+                super.setSessionFactory(transport -> {
+                    io.modelcontextprotocol.spec.McpServerTransport wrappedTransport = new io.modelcontextprotocol.spec.McpServerTransport() {
+                        @Override
+                        public reactor.core.publisher.Mono<Void> sendMessage(io.modelcontextprotocol.spec.McpSchema.JSONRPCMessage message) {
+                            return transport.sendMessage(message);
+                        }
+
+                        @Override
+                        public <T> T unmarshalFrom(Object data, io.modelcontextprotocol.json.TypeRef<T> typeRef) {
+                            return transport.unmarshalFrom(data, typeRef);
+                        }
+
+                        @Override
+                        public reactor.core.publisher.Mono<Void> closeGracefully() {
+                            closeLatch.countDown();
+                            return transport.closeGracefully();
+                        }
+
+                        @Override
+                        public void close() {
+                            closeLatch.countDown();
+                            transport.close();
+                        }
+                    };
+                    return factory.create(wrappedTransport);
+                });
+            }
+        };
 
         String serverVersion = McpServer.class.getPackage() != null ? McpServer.class.getPackage().getImplementationVersion() : null;
         if (serverVersion == null || serverVersion.trim().isEmpty()) {
