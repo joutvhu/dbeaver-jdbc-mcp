@@ -24,11 +24,7 @@ public class DatabaseService {
         }
 
         if (connInfo.getProperties() != null) {
-            for (Map.Entry<String, Object> entry : connInfo.getProperties().entrySet()) {
-                if (entry.getValue() != null && !"user".equalsIgnoreCase(entry.getKey()) && !"password".equalsIgnoreCase(entry.getKey())) {
-                    props.put(entry.getKey(), entry.getValue().toString());
-                }
-            }
+            extractProperties(connInfo.getProperties(), props);
         }
 
         // Trust server cert for SQL Server by default if not set
@@ -96,6 +92,7 @@ public class DatabaseService {
             throw new IllegalArgumentException("table_name cannot be empty");
         }
 
+        String catalog = null;
         String schema = null;
         String rawTable = tableName.trim();
         if (rawTable.contains(".")) {
@@ -104,6 +101,7 @@ public class DatabaseService {
                 schema = stripQuotes(parts[0]);
                 rawTable = stripQuotes(parts[1]);
             } else if (parts.length == 3) {
+                catalog = stripQuotes(parts[0]);
                 schema = stripQuotes(parts[1]);
                 rawTable = stripQuotes(parts[2]);
             }
@@ -124,14 +122,14 @@ public class DatabaseService {
 
             for (String tableCandidate : tableCandidates) {
                 // Primary Keys
-                try (ResultSet pkRs = meta.getPrimaryKeys(null, schema, tableCandidate)) {
+                try (ResultSet pkRs = meta.getPrimaryKeys(catalog, schema, tableCandidate)) {
                     while (pkRs.next()) {
                         primaryKeys.add(pkRs.getString("COLUMN_NAME"));
                     }
                 } catch (Exception ignored) {}
 
                 // Columns
-                try (ResultSet colRs = meta.getColumns(null, schema, tableCandidate, "%")) {
+                try (ResultSet colRs = meta.getColumns(catalog, schema, tableCandidate, "%")) {
                     while (colRs.next()) {
                         Map<String, Object> col = new LinkedHashMap<>();
                         String colName = colRs.getString("COLUMN_NAME");
@@ -208,7 +206,7 @@ public class DatabaseService {
                         while (rs.next()) {
                             List<Object> row = new ArrayList<>(colCount);
                             for (int i = 1; i <= colCount; i++) {
-                                row.add(rs.getObject(i));
+                                row.add(formatJdbcValue(rs.getObject(i)));
                             }
                             rows.add(row);
                         }
@@ -320,6 +318,58 @@ public class DatabaseService {
             return "jdbc:clickhouse://" + host + ":" + (port != null ? port : 8123) + "/" + db;
         }
         return null;
+    }
+
+    private Object formatJdbcValue(Object val) throws SQLException {
+        if (val == null) {
+            return null;
+        }
+        if (val instanceof Clob) {
+            Clob clob = (Clob) val;
+            long len = clob.length();
+            return clob.getSubString(1, (int) Math.min(len, 500_000));
+        }
+        if (val instanceof Blob) {
+            Blob blob = (Blob) val;
+            long len = blob.length();
+            byte[] bytes = blob.getBytes(1, (int) Math.min(len, 50_000));
+            return Base64.getEncoder().encodeToString(bytes);
+        }
+        if (val instanceof java.sql.Array) {
+            try {
+                Object arr = ((java.sql.Array) val).getArray();
+                if (arr instanceof Object[]) {
+                    return Arrays.asList((Object[]) arr);
+                }
+            } catch (Exception ignored) {}
+        }
+        if (val instanceof byte[]) {
+            return Base64.getEncoder().encodeToString((byte[]) val);
+        }
+        return val;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void extractProperties(Map<String, Object> source, Properties target) {
+        if (source == null) return;
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            String key = entry.getKey();
+            Object val = entry.getValue();
+            if (val == null || key == null || key.startsWith("@")) {
+                continue;
+            }
+            if ("user".equalsIgnoreCase(key) || "password".equalsIgnoreCase(key)) {
+                continue;
+            }
+            if (val instanceof Map) {
+                extractProperties((Map<String, Object>) val, target);
+            } else {
+                target.put(key, val.toString());
+                if ("sslTrustServerCertificate".equalsIgnoreCase(key)) {
+                    target.put("trustServerCertificate", val.toString());
+                }
+            }
+        }
     }
 
     private static String stripQuotes(String s) {

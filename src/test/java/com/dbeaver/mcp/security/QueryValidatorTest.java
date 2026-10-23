@@ -47,9 +47,15 @@ public class QueryValidatorTest {
     public void testDangerousWriteBlocked() {
         // 'where' in string value should NOT satisfy WHERE requirement
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET name = 'where'"));
+        // 'where' in identifier should NOT satisfy WHERE requirement
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET \"where\" = 1"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET [where] = 1"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET `where` = 1"));
         // 'where' in comment should NOT satisfy WHERE requirement
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DELETE FROM users /* where */"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DROP DATABASE prod"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DROP PROCEDURE sp_test"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("ALTER TABLE users DROP COLUMN name"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("ALTER SEQUENCE seq_id RESTART"));
     }
 }

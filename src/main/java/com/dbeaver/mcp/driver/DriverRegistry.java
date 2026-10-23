@@ -139,6 +139,8 @@ public class DriverRegistry {
             throw new SQLException("JDBC URL cannot be empty");
         }
 
+        SQLException lastException = null;
+
         // Try loaded drivers first
         for (Driver driver : loadedDrivers) {
             try {
@@ -148,9 +150,16 @@ public class DriverRegistry {
                         return conn;
                     }
                 }
+            } catch (SQLException e) {
+                lastException = e;
             } catch (Throwable ignored) {
-                // Try next driver
+                // Ignore unexpected driver loading / linkage errors
             }
+        }
+
+        // If a matching driver was found but threw a real connection/auth error, report it directly
+        if (lastException != null) {
+            throw lastException;
         }
 
         // Fallback to default DriverManager in case driver is on the system classpath

@@ -7,12 +7,12 @@ import java.util.regex.Pattern;
 public class QueryValidator {
     // Dangerous DDL / Admin patterns
     private static final List<Pattern> DANGEROUS_PATTERNS = Arrays.asList(
-            Pattern.compile("\\bdrop\\s+(?:database|schema|table|index|view|user|function|procedure)\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+(?:database|schema|table|index|view|user|role|function|procedure|trigger|sequence|type|extension|materialized\\s+view|event|server|synonym)\\b", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\btruncate\\s+(?:table\\s+)?\\S+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("\\balter\\s+(?:table|database|schema|user|role|system)\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\balter\\s+\\S+", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\bgrant\\s+", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\brevoke\\s+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("\\bcreate\\s+(?:user|role|database|schema)\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bcreate\\s+(?:table|index|view|user|role|database|schema|function|procedure|trigger|sequence|type|extension|materialized\\s+view)\\b", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\bshutdown\\b", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\binto\\s+(?:outfile|dumpfile)\\b", Pattern.CASE_INSENSITIVE)
     );
@@ -31,7 +31,7 @@ public class QueryValidator {
 
     // Block write/DDL keywords inside read-only queries (e.g. inside CTE WITH ... or EXPLAIN ANALYZE)
     private static final Pattern WRITE_KEYWORDS_IN_READ_ONLY = Pattern.compile(
-            "\\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke)\\b",
+            "\\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|exec|execute|call)\\b",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -213,6 +213,58 @@ public class QueryValidator {
                     }
                 }
                 continue;
+            }
+
+            // Double-quoted identifier or string "..."
+            if (c == '"') {
+                sb.append("\"\"");
+                i++;
+                while (i < len) {
+                    if (sql.charAt(i) == '"') {
+                        if (i + 1 < len && sql.charAt(i + 1) == '"') {
+                            i += 2;
+                            continue;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    } else if (sql.charAt(i) == '\\' && i + 1 < len) {
+                        i += 2;
+                    } else {
+                        i++;
+                    }
+                }
+                continue;
+            }
+
+            // Backtick identifier `...`
+            if (c == '`') {
+                sb.append("``");
+                i++;
+                while (i < len) {
+                    if (sql.charAt(i) == '`') {
+                        if (i + 1 < len && sql.charAt(i + 1) == '`') {
+                            i += 2;
+                            continue;
+                        } else {
+                            i++;
+                            break;
+                        }
+                    } else {
+                        i++;
+                    }
+                }
+                continue;
+            }
+
+            // Square bracket identifier [...] (e.g. SQL Server / MS Access)
+            if (c == '[') {
+                int endBracket = sql.indexOf(']', i + 1);
+                if (endBracket != -1) {
+                    sb.append("[]");
+                    i = endBracket + 1;
+                    continue;
+                }
             }
 
             // PostgreSQL Dollar-quoted string $$...$$ or $tag$...$tag$
