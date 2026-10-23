@@ -5,42 +5,39 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 public class QueryValidator {
+    // Dangerous patterns: match keyword boundary to avoid false positives inside comments or values
     private static final List<Pattern> DANGEROUS_PATTERNS = Arrays.asList(
-            Pattern.compile("drop\\s+database", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("drop\\s+schema", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("drop\\s+table", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("drop\\s+index", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("drop\\s+view", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("truncate\\s+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("grant\\s+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("revoke\\s+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("create\\s+user", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("drop\\s+user", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("alter\\s+user", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("shutdown", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("\\bdrop\\s+database\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+schema\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+table\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+index\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+view\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\btruncate\\s+(?:table\\s+)?\\S+", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bgrant\\s+", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\brevoke\\s+", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bcreate\\s+user\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bdrop\\s+user\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\balter\\s+user\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bshutdown\\b", Pattern.CASE_INSENSITIVE)
     );
 
     private static final List<Pattern> READ_ONLY_PREFIXES = Arrays.asList(
-            Pattern.compile("^select\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^select$", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^with\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^explain\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^show\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^describe\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^desc\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^pragma\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^set\\s+search_path", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("^select\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^with\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^explain\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^show\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^describe\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^desc\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^pragma\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^set\\s+search_path\\b", Pattern.CASE_INSENSITIVE)
     );
 
     private static final List<Pattern> WRITE_ALLOWED_PREFIXES = Arrays.asList(
-            Pattern.compile("^insert\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^update\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^delete\\s", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("^merge\\s", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("^insert\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^update\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^delete\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("^merge\\b", Pattern.CASE_INSENSITIVE)
     );
-
-    private static final Pattern DELETE_NO_WHERE = Pattern.compile("^delete\\s+from\\s+\\S+\\s*;?\\s*$", Pattern.CASE_INSENSITIVE);
-    private static final Pattern UPDATE_NO_WHERE = Pattern.compile("^update\\s+\\S+\\s+set\\s+(?:(?!where).)*\\s*;?\\s*$", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     public static boolean isReadOnlyMode() {
         String ro = System.getenv("READ_ONLY");
@@ -54,22 +51,30 @@ public class QueryValidator {
         if (sql == null || sql.trim().isEmpty()) {
             throw new IllegalArgumentException("Query cannot be empty");
         }
-        String trimmed = sql.trim();
+
+        String cleaned = stripLeadingComments(sql.trim());
+        if (cleaned.isEmpty()) {
+            throw new IllegalArgumentException("Query cannot be empty after stripping comments");
+        }
+
+        // Prevent multiple queries stacked with semicolons (SQL injection / smuggling)
+        checkMultipleStatements(cleaned);
+
         for (Pattern p : DANGEROUS_PATTERNS) {
-            if (p.matcher(trimmed).find()) {
+            if (p.matcher(cleaned).find()) {
                 throw new IllegalArgumentException("Potentially dangerous query detected. Query blocked for safety.");
             }
         }
 
         boolean matched = false;
         for (Pattern p : READ_ONLY_PREFIXES) {
-            if (p.matcher(trimmed).find()) {
+            if (p.matcher(cleaned).find()) {
                 matched = true;
                 break;
             }
         }
         if (!matched) {
-            throw new IllegalArgumentException("Only read-only queries (SELECT, EXPLAIN, SHOW, DESCRIBE, PRAGMA) are allowed. Use 'execute' for data modifications.");
+            throw new IllegalArgumentException("Only read-only queries (SELECT, WITH, EXPLAIN, SHOW, DESCRIBE, PRAGMA) are allowed. Use 'execute' for data modifications.");
         }
     }
 
@@ -80,11 +85,18 @@ public class QueryValidator {
         if (sql == null || sql.trim().isEmpty()) {
             throw new IllegalArgumentException("Query cannot be empty");
         }
-        String trimmed = sql.trim();
+
+        String cleaned = stripLeadingComments(sql.trim());
+        if (cleaned.isEmpty()) {
+            throw new IllegalArgumentException("Query cannot be empty after stripping comments");
+        }
+
+        // Prevent multiple statements in execute
+        checkMultipleStatements(cleaned);
 
         boolean allowedPrefix = false;
         for (Pattern p : WRITE_ALLOWED_PREFIXES) {
-            if (p.matcher(trimmed).find()) {
+            if (p.matcher(cleaned).find()) {
                 allowedPrefix = true;
                 break;
             }
@@ -94,17 +106,59 @@ public class QueryValidator {
         }
 
         for (Pattern p : DANGEROUS_PATTERNS) {
-            if (p.matcher(trimmed).find()) {
+            if (p.matcher(cleaned).find()) {
                 throw new IllegalArgumentException("DDL and administrative commands are not allowed. Only INSERT, UPDATE, DELETE (with WHERE), and MERGE are permitted.");
             }
         }
 
-        if (DELETE_NO_WHERE.matcher(trimmed).matches()) {
+        // Enforce WHERE clause for DELETE and UPDATE
+        String lower = cleaned.toLowerCase();
+        if (lower.startsWith("delete") && !Pattern.compile("\\bwhere\\b", Pattern.CASE_INSENSITIVE).matcher(cleaned).find()) {
             throw new IllegalArgumentException("DELETE without a WHERE clause is not allowed. Please add a WHERE clause to target specific rows.");
         }
 
-        if (UPDATE_NO_WHERE.matcher(trimmed).matches()) {
+        if (lower.startsWith("update") && !Pattern.compile("\\bwhere\\b", Pattern.CASE_INSENSITIVE).matcher(cleaned).find()) {
             throw new IllegalArgumentException("UPDATE without a WHERE clause is not allowed. Please add a WHERE clause to target specific rows.");
+        }
+    }
+
+    private static String stripLeadingComments(String sql) {
+        String s = sql.trim();
+        while (true) {
+            if (s.startsWith("--")) {
+                int nextLine = s.indexOf('\n');
+                if (nextLine == -1) return "";
+                s = s.substring(nextLine + 1).trim();
+            } else if (s.startsWith("/*")) {
+                int endComment = s.indexOf("*/");
+                if (endComment == -1) return "";
+                s = s.substring(endComment + 2).trim();
+            } else {
+                break;
+            }
+        }
+        return s;
+    }
+
+    private static void checkMultipleStatements(String sql) {
+        // Strip trailing semicolon
+        String s = sql.trim();
+        while (s.endsWith(";")) {
+            s = s.substring(0, s.length() - 1).trim();
+        }
+
+        // Check if there is an unquoted semicolon indicating stacked queries
+        boolean inSingleQuotes = false;
+        boolean inDoubleQuotes = false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\'' && !inDoubleQuotes) {
+                inSingleQuotes = !inSingleQuotes;
+            } else if (c == '"' && !inSingleQuotes) {
+                inDoubleQuotes = !inDoubleQuotes;
+            } else if (c == ';' && !inSingleQuotes && !inDoubleQuotes) {
+                throw new IllegalArgumentException("Multiple SQL statements in a single execution are blocked for security.");
+            }
         }
     }
 }

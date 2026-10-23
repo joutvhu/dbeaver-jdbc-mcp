@@ -60,34 +60,17 @@ public class McpServer {
 
         System.err.println("[McpServer] Server listening on STDIO...");
 
-        // Keep main thread alive. The transport threads handle reading from System.in asynchronously.
-        // A daemon thread monitors System.in EOF to gracefully shut down.
-        Object lock = new Object();
-        Thread monitor = new Thread(() -> {
+        // Keep main thread alive until stdin reaches EOF (client closes connection)
+        try {
+            while (System.in.read() != -1) {
+                // Keep reading until stream terminates
+            }
+        } catch (Exception ignored) {
+        } finally {
             try {
-                // When stdin closes or process terminates, wake up main thread
-                while (System.in.available() >= 0) {
-                    Thread.sleep(1000);
-                }
+                syncServer.close();
             } catch (Exception ignored) {
             }
-            synchronized (lock) {
-                lock.notifyAll();
-            }
-        });
-        monitor.setDaemon(true);
-        monitor.start();
-
-        synchronized (lock) {
-            try {
-                lock.wait();
-            } catch (InterruptedException ignored) {
-            }
-        }
-
-        try {
-            syncServer.close();
-        } catch (Exception ignored) {
         }
     }
 

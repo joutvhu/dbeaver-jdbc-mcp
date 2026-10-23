@@ -9,7 +9,8 @@ public class QueryValidatorTest {
     @Test
     public void testReadOnlyAllowed() {
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SELECT * FROM users"));
-        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("select id, name from table_a where id = 1"));
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("-- comment\nSELECT id, name FROM table_a WHERE id = 1"));
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("/* multi-line comment */ SELECT 1"));
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("EXPLAIN SELECT 1"));
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SHOW TABLES"));
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("DESCRIBE my_table"));
@@ -21,8 +22,9 @@ public class QueryValidatorTest {
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("DROP TABLE users"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("TRUNCATE TABLE users"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("INSERT INTO users VALUES (1)"));
-        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("UPDATE users SET name = 'a'"));
-        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("DELETE FROM users"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("UPDATE users SET name = 'a' WHERE id = 1"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("DELETE FROM users WHERE id = 1"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT * FROM users; DROP TABLE users;"));
     }
 
     @Test
