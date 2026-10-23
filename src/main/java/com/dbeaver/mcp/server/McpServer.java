@@ -67,7 +67,12 @@ public class McpServer {
                 System.out
         );
 
-        Implementation serverInfo = Implementation.builder("dbeaver-database", "1.0.0")
+        String serverVersion = McpServer.class.getPackage() != null ? McpServer.class.getPackage().getImplementationVersion() : null;
+        if (serverVersion == null || serverVersion.trim().isEmpty()) {
+            serverVersion = "1.0.0";
+        }
+
+        Implementation serverInfo = Implementation.builder("dbeaver-database", serverVersion)
                 .title("DBeaver Database MCP Server")
                 .description("Model Context Protocol server for DBeaver with dynamic JDBC driver loading, supporting all DBeaver database connections.")
                 .websiteUrl("https://github.com/joutvhu/dbeaver-mcp")
@@ -143,7 +148,7 @@ public class McpServer {
                 .tool(tool)
                 .callHandler((exchange, request) -> {
                     try {
-                        boolean details = Boolean.TRUE.equals(request.arguments().get("details"));
+                        boolean details = parseBoolean(request.arguments().get("details"));
                         List<ConnectionInfo> list = configParser.parseConnections();
                         if (list.isEmpty()) {
                             Map<String, Object> debug = Map.of(
@@ -262,7 +267,7 @@ public class McpServer {
                     try {
                         String connId = String.valueOf(request.arguments().get("connection_id"));
                         String dbSchema = request.arguments().get("schema") != null ? String.valueOf(request.arguments().get("schema")) : null;
-                        boolean includeViews = Boolean.TRUE.equals(request.arguments().get("include_views"));
+                        boolean includeViews = parseBoolean(request.arguments().get("include_views"));
 
                         ConnectionInfo conn = configParser.getConnection(connId);
                         if (conn == null) {
@@ -367,7 +372,7 @@ public class McpServer {
                     try {
                         String connId = String.valueOf(request.arguments().get("connection_id"));
                         String sql = String.valueOf(request.arguments().get("sql"));
-                        int maxRows = request.arguments().get("max_rows") != null ? ((Number) request.arguments().get("max_rows")).intValue() : 1000;
+                        int maxRows = parseInteger(request.arguments().get("max_rows"), 1000);
 
                         ConnectionInfo conn = configParser.getConnection(connId);
                         if (conn == null) {
@@ -427,7 +432,7 @@ public class McpServer {
                         String connId = String.valueOf(request.arguments().get("connection_id"));
                         String sql = String.valueOf(request.arguments().get("sql"));
                         String format = request.arguments().get("format") != null ? String.valueOf(request.arguments().get("format")) : "json";
-                        int maxRows = request.arguments().get("max_rows") != null ? ((Number) request.arguments().get("max_rows")).intValue() : 10000;
+                        int maxRows = parseInteger(request.arguments().get("max_rows"), 10000);
 
                         ConnectionInfo conn = configParser.getConnection(connId);
                         if (conn == null) {
@@ -467,7 +472,8 @@ public class McpServer {
                             for (List<Object> row : rows) {
                                 Map<String, Object> obj = new LinkedHashMap<>();
                                 for (int i = 0; i < columns.size(); i++) {
-                                    obj.put(columns.get(i), i < row.size() ? row.get(i) : null);
+                                    String key = resolveUniqueKey(obj, columns.get(i));
+                                    obj.put(key, i < row.size() ? row.get(i) : null);
                                 }
                                 list.add(obj);
                             }
@@ -624,5 +630,32 @@ public class McpServer {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
+    }
+
+    private boolean parseBoolean(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return "true".equalsIgnoreCase(val.toString().trim());
+    }
+
+    private int parseInteger(Object val, int defaultVal) {
+        if (val == null) return defaultVal;
+        if (val instanceof Number) return ((Number) val).intValue();
+        try {
+            return Integer.parseInt(val.toString().trim());
+        } catch (Exception e) {
+            return defaultVal;
+        }
+    }
+
+    private String resolveUniqueKey(Map<String, Object> obj, String key) {
+        if (!obj.containsKey(key)) {
+            return key;
+        }
+        int index = 2;
+        while (obj.containsKey(key + "_" + index)) {
+            index++;
+        }
+        return key + "_" + index;
     }
 }

@@ -7,7 +7,8 @@ const { spawn, execSync } = require('child_process');
 function findJavaExecutable() {
     // 1. Check JAVA_HOME
     if (process.env.JAVA_HOME) {
-        const binJava = path.join(process.env.JAVA_HOME, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+        const rawHome = process.env.JAVA_HOME.replace(/^"(.*)"$/, '$1').trim();
+        const binJava = path.join(rawHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
         if (fs.existsSync(binJava)) {
             return binJava;
         }
@@ -125,6 +126,16 @@ function main() {
             process.exit(code || 0);
         }
     });
+
+    const forwardSignal = (sig) => {
+        if (child && !child.killed) {
+            try {
+                child.kill(sig);
+            } catch (e) {}
+        }
+    };
+    process.on('SIGINT', () => forwardSignal('SIGINT'));
+    process.on('SIGTERM', () => forwardSignal('SIGTERM'));
 }
 
 main();

@@ -102,6 +102,21 @@
                 </configuration>
             </plugin>
 
+            <!-- JAR plugin to add implementation version into manifest -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
             <!-- Fat JAR Shade plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
