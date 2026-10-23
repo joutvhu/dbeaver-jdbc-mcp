@@ -21,8 +21,12 @@ elif [ -d "/Applications/DBeaver.app/Contents/jre/bin" ]; then
     JAVA_CMD="/Applications/DBeaver.app/Contents/jre/bin/java"
 elif [ -d "/Applications/DBeaver Community.app/Contents/Eclipse/jre/Home/bin" ]; then
     JAVA_CMD="/Applications/DBeaver Community.app/Contents/Eclipse/jre/Home/bin/java"
+elif [ -d "/Applications/DBeaver Community.app/Contents/jre/bin" ]; then
+    JAVA_CMD="/Applications/DBeaver Community.app/Contents/jre/bin/java"
 elif [ -d "$HOME/Applications/DBeaver.app/Contents/Eclipse/jre/Home/bin" ]; then
     JAVA_CMD="$HOME/Applications/DBeaver.app/Contents/Eclipse/jre/Home/bin/java"
+elif [ -d "$HOME/Applications/DBeaver.app/Contents/jre/bin" ]; then
+    JAVA_CMD="$HOME/Applications/DBeaver.app/Contents/jre/bin/java"
 fi
 
 # 2. Check Linux DBeaver JRE (Native, Flatpak, Snap)
