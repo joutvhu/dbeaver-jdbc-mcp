@@ -4,6 +4,28 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, execSync } = require('child_process');
 
+function getWindowsDrives() {
+    try {
+        const output = execSync('fsutil fsinfo drives', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
+        const matches = [...output.matchAll(/\b([A-Za-z]):\\/g)].map(m => m[1].toUpperCase());
+        if (matches.length > 0) {
+            return matches;
+        }
+    } catch (e) {}
+
+    // Fallback: Check existing drive roots from C: to Z:
+    const drives = [];
+    for (let i = 67; i <= 90; i++) { // 'C' to 'Z'
+        const letter = String.fromCharCode(i);
+        try {
+            if (fs.existsSync(`${letter}:\\`)) {
+                drives.push(letter);
+            }
+        } catch (e) {}
+    }
+    return drives.length > 0 ? drives : ['C'];
+}
+
 function findJavaExecutable() {
     // 1. Check JAVA_HOME
     if (process.env.JAVA_HOME) {
@@ -43,8 +65,19 @@ function findJavaExecutable() {
             } catch (e) {}
         }
 
-        // Check common Windows drive locations
-        const drives = ['C', 'D', 'E', 'F', 'G'];
+        // Check standard Program Files environment variables
+        const standardProgramDirs = [
+            process.env.ProgramFiles,
+            process.env['ProgramFiles(x86)'],
+            process.env.ProgramW6432
+        ].filter(Boolean);
+        for (const progDir of standardProgramDirs) {
+            const p = path.join(progDir, 'DBeaver', 'jre', 'bin', 'java.exe');
+            if (fs.existsSync(p)) return p;
+        }
+
+        // Check dynamically detected existing Windows drives
+        const drives = getWindowsDrives();
         for (const drive of drives) {
             const p1 = `${drive}:\\Program Files\\DBeaver\\jre\\bin\\java.exe`;
             if (fs.existsSync(p1)) return p1;

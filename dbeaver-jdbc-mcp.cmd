@@ -30,19 +30,49 @@ for %%K in (
     )
 )
 
-REM 2. Check standard installation drives and program files folders
-for %%D in (C D E F G) do (
-    if exist "%%D:\Program Files\DBeaver\jre\bin\java.exe" (
-        set "JAVA_CMD=%%D:\Program Files\DBeaver\jre\bin\java.exe"
+REM 2. Check standard Program Files environment variables
+if defined ProgramFiles (
+    if exist "%ProgramFiles%\DBeaver\jre\bin\java.exe" (
+        set "JAVA_CMD=%ProgramFiles%\DBeaver\jre\bin\java.exe"
         goto :found_java
     )
-    if exist "%%D:\Program Files (x86)\DBeaver\jre\bin\java.exe" (
-        set "JAVA_CMD=%%D:\Program Files (x86)\DBeaver\jre\bin\java.exe"
+)
+if defined ProgramFiles(x86) (
+    if exist "%ProgramFiles(x86)%\DBeaver\jre\bin\java.exe" (
+        set "JAVA_CMD=%ProgramFiles(x86)%\DBeaver\jre\bin\java.exe"
         goto :found_java
     )
 )
 
-REM 3. Check Local AppData installation (User-level installer)
+REM 3. Check dynamically detected existing drives via fsutil
+for /f "tokens=1* delims=: " %%A in ('fsutil fsinfo drives 2^>nul') do (
+    for %%C in (%%B) do (
+        if exist "%%CProgram Files\DBeaver\jre\bin\java.exe" (
+            set "JAVA_CMD=%%CProgram Files\DBeaver\jre\bin\java.exe"
+            goto :found_java
+        )
+        if exist "%%CProgram Files (x86)\DBeaver\jre\bin\java.exe" (
+            set "JAVA_CMD=%%CProgram Files (x86)\DBeaver\jre\bin\java.exe"
+            goto :found_java
+        )
+    )
+)
+
+REM Fallback: scan existing drive roots from C to Z
+for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+    if exist "%%D:\" (
+        if exist "%%D:\Program Files\DBeaver\jre\bin\java.exe" (
+            set "JAVA_CMD=%%D:\Program Files\DBeaver\jre\bin\java.exe"
+            goto :found_java
+        )
+        if exist "%%D:\Program Files (x86)\DBeaver\jre\bin\java.exe" (
+            set "JAVA_CMD=%%D:\Program Files (x86)\DBeaver\jre\bin\java.exe"
+            goto :found_java
+        )
+    )
+)
+
+REM 4. Check Local AppData installation (User-level installer)
 if defined LOCALAPPDATA (
     if exist "%LOCALAPPDATA%\Programs\DBeaver\jre\bin\java.exe" (
         set "JAVA_CMD=%LOCALAPPDATA%\Programs\DBeaver\jre\bin\java.exe"
@@ -50,7 +80,7 @@ if defined LOCALAPPDATA (
     )
 )
 
-REM 4. Check JAVA_HOME
+REM 5. Check JAVA_HOME
 if defined JAVA_HOME (
     if exist "%JAVA_HOME%\bin\java.exe" (
         set "JAVA_CMD=%JAVA_HOME%\bin\java.exe"
@@ -58,7 +88,7 @@ if defined JAVA_HOME (
     )
 )
 
-REM 5. Fallback to system PATH java
+REM 6. Fallback to system PATH java
 set "JAVA_CMD=java"
 
 :found_java
