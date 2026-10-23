@@ -18,8 +18,12 @@ import io.modelcontextprotocol.spec.McpSchema.Tool;
 import io.modelcontextprotocol.spec.McpSchema.ToolAnnotations;
 
 import java.io.File;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 public class McpServer {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -29,7 +33,39 @@ public class McpServer {
     public void start() {
         System.err.println("[McpServer] Starting DBeaver MCP Server using official Java SDK 2.x...");
 
-        StdioServerTransportProvider transportProvider = new StdioServerTransportProvider(McpJsonDefaults.getMapper());
+        CountDownLatch closeLatch = new CountDownLatch(1);
+
+        InputStream wrappedIn = new FilterInputStream(System.in) {
+            @Override
+            public int read() throws IOException {
+                int b = super.read();
+                if (b == -1) {
+                    closeLatch.countDown();
+                }
+                return b;
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+                int n = super.read(b, off, len);
+                if (n == -1) {
+                    closeLatch.countDown();
+                }
+                return n;
+            }
+
+            @Override
+            public void close() throws IOException {
+                super.close();
+                closeLatch.countDown();
+            }
+        };
+
+        StdioServerTransportProvider transportProvider = new StdioServerTransportProvider(
+                McpJsonDefaults.getMapper(),
+                wrappedIn,
+                System.out
+        );
 
         Implementation serverInfo = Implementation.builder("dbeaver-database", "1.0.0")
                 .title("DBeaver Database MCP Server")
@@ -60,13 +96,25 @@ public class McpServer {
 
         System.err.println("[McpServer] Server listening on STDIO...");
 
-        // Keep main thread alive until stdin reaches EOF (client closes connection)
-        try {
-            while (System.in.read() != -1) {
-                // Keep reading until stream terminates
+        Thread shutdownHook = new Thread(() -> {
+            closeLatch.countDown();
+            try {
+                syncServer.close();
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
+        });
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
+        // Keep main thread alive until stdin reaches EOF or shutdown hook fires
+        try {
+            closeLatch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
+            try {
+                Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            } catch (Exception ignored) {
+            }
             try {
                 syncServer.close();
             } catch (Exception ignored) {

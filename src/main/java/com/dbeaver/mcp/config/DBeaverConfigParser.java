@@ -81,61 +81,98 @@ public class DBeaverConfigParser {
     }
 
     public List<ConnectionInfo> parseConnections() {
-        File dataSourcesFile = new File(workspacePath, "General/.dbeaver/data-sources.json");
-        if (!dataSourcesFile.exists()) {
-            dataSourcesFile = new File(workspacePath, "General\\.dbeaver\\data-sources.json");
-        }
-
-        if (!dataSourcesFile.isFile()) {
-            logDebug("data-sources.json not found at: " + dataSourcesFile.getAbsolutePath());
+        List<File> dsFiles = findDataSourceFiles();
+        if (dsFiles.isEmpty()) {
+            logDebug("No data-sources.json found in workspace: " + workspacePath);
             return Collections.emptyList();
         }
 
-        List<ConnectionInfo> connections = new ArrayList<>();
-        try {
-            JsonNode root = mapper.readTree(dataSourcesFile);
-            JsonNode connsNode = root.get("connections");
-            if (connsNode != null && connsNode.isObject()) {
-                Iterator<Map.Entry<String, JsonNode>> fields = connsNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
-                    String connId = entry.getKey();
-                    JsonNode connData = entry.getValue();
+        Map<String, ConnectionInfo> connectionMap = new LinkedHashMap<>();
 
-                    ConnectionInfo info = new ConnectionInfo();
-                    info.setId(connId);
-                    info.setName(connData.path("name").asText(connId));
-                    info.setDriver(connData.path("driver").asText(""));
-                    info.setProvider(connData.path("provider").asText(""));
-                    info.setFolder(connData.path("folder").asText(""));
-                    info.setDescription(connData.path("description").asText(""));
-                    info.setReadonly(connData.path("readonly").asBoolean(false));
+        for (File dataSourcesFile : dsFiles) {
+            try {
+                JsonNode root = mapper.readTree(dataSourcesFile);
+                JsonNode connsNode = root.get("connections");
+                if (connsNode != null && connsNode.isObject()) {
+                    List<ConnectionInfo> fileConnections = new ArrayList<>();
+                    Iterator<Map.Entry<String, JsonNode>> fields = connsNode.fields();
+                    while (fields.hasNext()) {
+                        Map.Entry<String, JsonNode> entry = fields.next();
+                        String connId = entry.getKey();
+                        JsonNode connData = entry.getValue();
 
-                    JsonNode config = connData.path("configuration");
-                    if (!config.isMissingNode()) {
-                        info.setUrl(config.path("url").asText(""));
-                        info.setUser(config.path("user").asText(""));
-                        info.setHost(config.path("host").asText(config.path("server").asText("")));
-                        if (config.has("port") && !config.get("port").isNull()) {
-                            info.setPort(config.get("port").asInt());
+                        ConnectionInfo info = new ConnectionInfo();
+                        info.setId(connId);
+                        info.setName(connData.path("name").asText(connId));
+                        info.setDriver(connData.path("driver").asText(""));
+                        info.setProvider(connData.path("provider").asText(""));
+                        info.setFolder(connData.path("folder").asText(""));
+                        info.setDescription(connData.path("description").asText(""));
+                        info.setReadonly(connData.path("readonly").asBoolean(false));
+
+                        JsonNode config = connData.path("configuration");
+                        if (!config.isMissingNode()) {
+                            info.setUrl(config.path("url").asText(""));
+                            info.setUser(config.path("user").asText(""));
+                            info.setHost(config.path("host").asText(config.path("server").asText("")));
+                            if (config.has("port") && !config.get("port").isNull()) {
+                                info.setPort(config.get("port").asInt());
+                            }
+                            info.setDatabase(config.path("database").asText(""));
+
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> props = mapper.convertValue(config, Map.class);
+                            info.setProperties(props);
                         }
-                        info.setDatabase(config.path("database").asText(""));
 
-                        Map<String, Object> props = mapper.convertValue(config, Map.class);
-                        info.setProperties(props);
+                        fillFromUrl(info);
+                        fileConnections.add(info);
+                        connectionMap.put(connId, info);
                     }
 
-                    fillFromUrl(info);
-                    connections.add(info);
+                    // Load credentials from credentials-config.json located in the same .dbeaver folder
+                    File credFile = new File(dataSourcesFile.getParentFile(), "credentials-config.json");
+                    if (credFile.isFile()) {
+                        loadCredentials(credFile, fileConnections);
+                    }
                 }
+            } catch (Exception e) {
+                logDebug("Error parsing connections from " + dataSourcesFile.getAbsolutePath() + ": " + e.getMessage());
             }
-
-            loadCredentials(connections);
-        } catch (Exception e) {
-            logDebug("Error parsing connections: " + e.getMessage());
         }
 
-        return connections;
+        return new ArrayList<>(connectionMap.values());
+    }
+
+    private List<File> findDataSourceFiles() {
+        List<File> result = new ArrayList<>();
+        File general = new File(workspacePath, "General/.dbeaver/data-sources.json");
+        if (!general.exists()) {
+            general = new File(workspacePath, "General\\.dbeaver\\data-sources.json");
+        }
+        if (general.isFile()) {
+            result.add(general);
+        }
+
+        File wsDir = new File(workspacePath);
+        if (wsDir.isDirectory()) {
+            File[] subdirs = wsDir.listFiles(File::isDirectory);
+            if (subdirs != null) {
+                for (File sub : subdirs) {
+                    if ("General".equalsIgnoreCase(sub.getName()) || ".metadata".equalsIgnoreCase(sub.getName())) {
+                        continue;
+                    }
+                    File ds = new File(sub, ".dbeaver/data-sources.json");
+                    if (!ds.exists()) {
+                        ds = new File(sub, ".dbeaver\\data-sources.json");
+                    }
+                    if (ds.isFile() && !result.contains(ds)) {
+                        result.add(ds);
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     public ConnectionInfo getConnection(String idOrName) {
@@ -150,16 +187,7 @@ public class DBeaverConfigParser {
         return null;
     }
 
-    private void loadCredentials(List<ConnectionInfo> connections) {
-        File credFile = new File(workspacePath, "General/.dbeaver/credentials-config.json");
-        if (!credFile.exists()) {
-            credFile = new File(workspacePath, "General\\.dbeaver\\credentials-config.json");
-        }
-        if (!credFile.isFile()) {
-            logDebug("Credentials file not found at: " + credFile.getAbsolutePath());
-            return;
-        }
-
+    private void loadCredentials(File credFile, List<ConnectionInfo> connections) {
         try {
             byte[] encryptedData = Files.readAllBytes(credFile.toPath());
             String decryptedJson = decryptCredentials(encryptedData, this.aesKey, this.aesIv);
@@ -179,11 +207,23 @@ public class DBeaverConfigParser {
                         if (inner.has("password")) {
                             conn.setPassword(inner.get("password").asText());
                         }
+                    } else {
+                        // Check other child nodes under credNode
+                        Iterator<JsonNode> elems = credNode.elements();
+                        while (elems.hasNext()) {
+                            JsonNode el = elems.next();
+                            if (el.has("user") && (conn.getUser() == null || conn.getUser().isEmpty())) {
+                                conn.setUser(el.get("user").asText());
+                            }
+                            if (el.has("password") && (conn.getPassword() == null || conn.getPassword().isEmpty())) {
+                                conn.setPassword(el.get("password").asText());
+                            }
+                        }
                     }
                 }
             }
         } catch (Exception e) {
-            logDebug("Failed to load credentials: " + e.getMessage());
+            logDebug("Failed to load credentials from " + credFile.getAbsolutePath() + ": " + e.getMessage());
         }
     }
 

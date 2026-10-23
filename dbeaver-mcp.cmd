@@ -3,18 +3,18 @@ setlocal enabledelayedexpansion
 
 REM Resolve directory of this script
 set "SCRIPT_DIR=%~dp0"
-set "JAR_PATH=%SCRIPT_DIR%target\dbeaver-mcp.jar"
-if not exist "%JAR_PATH%" set "JAR_PATH=%SCRIPT_DIR%dbeaver-mcp.jar"
+set "JAR_PATH=%SCRIPT_DIR%dbeaver-mcp.jar"
+if not exist "%JAR_PATH%" set "JAR_PATH=%SCRIPT_DIR%target\dbeaver-mcp.jar"
 
 if not exist "%JAR_PATH%" (
     echo [ERROR] Could not find dbeaver-mcp.jar in %SCRIPT_DIR% >&2
-    echo Please make sure dbeaver-mcp.jar is placed in the same directory as this script. >&2
+    echo Please make sure dbeaver-mcp.jar is placed in the same directory as this script, or run "mvn package" first. >&2
     exit /b 1
 )
 
 set "JAVA_CMD="
 
-REM 1. Check DBeaver installation from Windows Registry (both 64-bit and 32-bit views)
+REM 1. Check DBeaver installation from Windows Registry (HKLM, WOW6432Node, HKCU)
 for %%K in (
     "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
     "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"

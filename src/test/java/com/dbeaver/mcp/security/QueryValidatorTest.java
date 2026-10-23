@@ -15,6 +15,13 @@ public class QueryValidatorTest {
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SHOW TABLES"));
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("DESCRIBE my_table"));
         assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("WITH cte AS (SELECT 1) SELECT * FROM cte"));
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("(SELECT 1) UNION (SELECT 2)"));
+        // String literal containing semicolon
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SELECT * FROM users WHERE name = 'John; Doe'"));
+        // Escaped quote in string literal containing semicolon
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SELECT * FROM users WHERE name = 'O''Reilly; test'"));
+        // Comment containing semicolon
+        assertDoesNotThrow(() -> QueryValidator.validateReadOnlyQuery("SELECT 1 /* ; inside comment ; */ FROM dual; -- trailing;"));
     }
 
     @Test
@@ -25,12 +32,23 @@ public class QueryValidatorTest {
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("UPDATE users SET name = 'a' WHERE id = 1"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("DELETE FROM users WHERE id = 1"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT * FROM users; DROP TABLE users;"));
+
+        // CTE with data modification
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("WITH deleted AS (DELETE FROM users RETURNING *) SELECT * FROM deleted"));
+
+        // EXPLAIN ANALYZE with DELETE
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("EXPLAIN ANALYZE DELETE FROM users"));
+
+        // SELECT INTO
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT * INTO new_table FROM old_table"));
     }
 
     @Test
     public void testDangerousWriteBlocked() {
-        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET name = 'a'")); // No where
-        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DELETE FROM users")); // No where
+        // 'where' in string value should NOT satisfy WHERE requirement
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("UPDATE users SET name = 'where'"));
+        // 'where' in comment should NOT satisfy WHERE requirement
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DELETE FROM users /* where */"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("DROP DATABASE prod"));
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateWriteQuery("ALTER TABLE users DROP COLUMN name"));
     }

@@ -10,9 +10,9 @@ import java.util.*;
 public class DatabaseService {
 
     public Connection openConnection(ConnectionInfo connInfo) throws SQLException {
-        String url = connInfo.getUrl();
+        String url = resolveJdbcUrl(connInfo);
         if (url == null || url.trim().isEmpty()) {
-            throw new SQLException("No JDBC URL defined for connection: " + connInfo.getName());
+            throw new SQLException("No JDBC URL defined or resolvable for connection: " + connInfo.getName());
         }
 
         Properties props = new Properties();
@@ -75,7 +75,7 @@ public class DatabaseService {
 
         try (Connection conn = openConnection(connInfo)) {
             DatabaseMetaData meta = conn.getMetaData();
-            String schemaPattern = (schema != null && !schema.trim().isEmpty()) ? schema.trim() : null;
+            String schemaPattern = (schema != null && !schema.trim().isEmpty()) ? stripQuotes(schema.trim()) : null;
 
             try (ResultSet rs = meta.getTables(null, schemaPattern, "%", types)) {
                 while (rs.next()) {
@@ -97,16 +97,18 @@ public class DatabaseService {
         }
 
         String schema = null;
-        String table = tableName.trim();
-        if (table.contains(".")) {
-            String[] parts = table.split("\\.");
+        String rawTable = tableName.trim();
+        if (rawTable.contains(".")) {
+            String[] parts = rawTable.split("\\.");
             if (parts.length == 2) {
-                schema = parts[0];
-                table = parts[1];
+                schema = stripQuotes(parts[0]);
+                rawTable = stripQuotes(parts[1]);
             } else if (parts.length == 3) {
-                schema = parts[1];
-                table = parts[2];
+                schema = stripQuotes(parts[1]);
+                rawTable = stripQuotes(parts[2]);
             }
+        } else {
+            rawTable = stripQuotes(rawTable);
         }
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -115,28 +117,37 @@ public class DatabaseService {
         try (Connection conn = openConnection(connInfo)) {
             DatabaseMetaData meta = conn.getMetaData();
 
-            // Primary Keys
-            Set<String> primaryKeys = new HashSet<>();
-            try (ResultSet pkRs = meta.getPrimaryKeys(null, schema, table)) {
-                while (pkRs.next()) {
-                    primaryKeys.add(pkRs.getString("COLUMN_NAME"));
-                }
-            } catch (Exception ignored) {}
-
-            // Columns
+            // Try exact case, then uppercase (Oracle/DB2/Snowflake), then lowercase (Postgres)
+            List<String> tableCandidates = List.of(rawTable, rawTable.toUpperCase(), rawTable.toLowerCase());
             List<Map<String, Object>> columns = new ArrayList<>();
-            try (ResultSet colRs = meta.getColumns(null, schema, table, "%")) {
-                while (colRs.next()) {
-                    Map<String, Object> col = new LinkedHashMap<>();
-                    String colName = colRs.getString("COLUMN_NAME");
-                    col.put("column_name", colName);
-                    col.put("data_type", colRs.getString("TYPE_NAME"));
-                    col.put("column_size", colRs.getInt("COLUMN_SIZE"));
-                    col.put("decimal_digits", colRs.getInt("DECIMAL_DIGITS"));
-                    col.put("is_nullable", "YES".equalsIgnoreCase(colRs.getString("IS_NULLABLE")));
-                    col.put("column_default", colRs.getString("COLUMN_DEF"));
-                    col.put("is_primary_key", primaryKeys.contains(colName));
-                    columns.add(col);
+            Set<String> primaryKeys = new HashSet<>();
+
+            for (String tableCandidate : tableCandidates) {
+                // Primary Keys
+                try (ResultSet pkRs = meta.getPrimaryKeys(null, schema, tableCandidate)) {
+                    while (pkRs.next()) {
+                        primaryKeys.add(pkRs.getString("COLUMN_NAME"));
+                    }
+                } catch (Exception ignored) {}
+
+                // Columns
+                try (ResultSet colRs = meta.getColumns(null, schema, tableCandidate, "%")) {
+                    while (colRs.next()) {
+                        Map<String, Object> col = new LinkedHashMap<>();
+                        String colName = colRs.getString("COLUMN_NAME");
+                        col.put("column_name", colName);
+                        col.put("data_type", colRs.getString("TYPE_NAME"));
+                        col.put("column_size", colRs.getInt("COLUMN_SIZE"));
+                        col.put("decimal_digits", colRs.getInt("DECIMAL_DIGITS"));
+                        col.put("is_nullable", "YES".equalsIgnoreCase(colRs.getString("IS_NULLABLE")));
+                        col.put("column_default", colRs.getString("COLUMN_DEF"));
+                        col.put("is_primary_key", primaryKeys.contains(colName));
+                        columns.add(col);
+                    }
+                }
+
+                if (!columns.isEmpty()) {
+                    break;
                 }
             }
 
@@ -152,6 +163,12 @@ public class DatabaseService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         try (Connection conn = openConnection(connInfo)) {
+            if (connInfo.isReadonly()) {
+                try {
+                    conn.setReadOnly(true);
+                } catch (Exception ignored) {}
+            }
+
             try (Statement stmt = conn.createStatement()) {
                 // Apply query timeout if set
                 String timeoutEnv = System.getenv("DBEAVER_QUERY_TIMEOUT_SECONDS");
@@ -213,6 +230,10 @@ public class DatabaseService {
     }
 
     public Map<String, Object> executeWrite(ConnectionInfo connInfo, String sql) throws Exception {
+        if (connInfo.isReadonly()) {
+            throw new IllegalArgumentException("Connection '" + connInfo.getName() + "' is configured as read-only in DBeaver. Write operations are blocked.");
+        }
+
         QueryValidator.validateWriteQuery(sql);
 
         long start = System.currentTimeMillis();
@@ -267,5 +288,48 @@ public class DatabaseService {
         }
 
         return result;
+    }
+
+    private String resolveJdbcUrl(ConnectionInfo connInfo) {
+        String url = connInfo.getUrl();
+        if (url != null && !url.trim().isEmpty()) {
+            return url.trim();
+        }
+
+        String driver = (connInfo.getDriver() != null ? connInfo.getDriver() : "").toLowerCase();
+        String provider = (connInfo.getProvider() != null ? connInfo.getProvider() : "").toLowerCase();
+        String host = (connInfo.getHost() != null && !connInfo.getHost().isEmpty()) ? connInfo.getHost() : "localhost";
+        Integer port = connInfo.getPort();
+        String db = connInfo.getDatabase() != null ? connInfo.getDatabase() : "";
+
+        if (driver.contains("postgres") || provider.contains("postgres")) {
+            return "jdbc:postgresql://" + host + ":" + (port != null ? port : 5432) + "/" + db;
+        } else if (driver.contains("mysql") || provider.contains("mysql")) {
+            return "jdbc:mysql://" + host + ":" + (port != null ? port : 3306) + "/" + db;
+        } else if (driver.contains("mariadb") || provider.contains("mariadb")) {
+            return "jdbc:mariadb://" + host + ":" + (port != null ? port : 3306) + "/" + db;
+        } else if (driver.contains("sqlserver") || driver.contains("microsoft") || provider.contains("sqlserver")) {
+            return "jdbc:sqlserver://" + host + ":" + (port != null ? port : 1433) + ";databaseName=" + db;
+        } else if (driver.contains("oracle") || provider.contains("oracle")) {
+            return "jdbc:oracle:thin:@" + host + ":" + (port != null ? port : 1521) + ":" + db;
+        } else if (driver.contains("sqlite") || provider.contains("sqlite")) {
+            return "jdbc:sqlite:" + db;
+        } else if (driver.contains("duckdb") || provider.contains("duckdb")) {
+            return "jdbc:duckdb:" + db;
+        } else if (driver.contains("clickhouse") || provider.contains("clickhouse")) {
+            return "jdbc:clickhouse://" + host + ":" + (port != null ? port : 8123) + "/" + db;
+        }
+        return null;
+    }
+
+    private static String stripQuotes(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        if ((t.startsWith("\"") && t.endsWith("\"")) ||
+                (t.startsWith("`") && t.endsWith("`")) ||
+                (t.startsWith("[") && t.endsWith("]"))) {
+            return t.substring(1, t.length() - 1).trim();
+        }
+        return t;
     }
 }

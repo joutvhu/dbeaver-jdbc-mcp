@@ -36,6 +36,9 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Grant execute permission for mvnw
+        run: chmod +x mvnw
+
       - name: Determine Version
         id: get_version
         run: |
@@ -89,7 +92,7 @@ jobs:
       # 2. Publish to NPM Registry (npx dbeaver-mcp) from Root
       # -------------------------------------------------------------
       - name: Publish to NPM
-        if: env.NPM_TOKEN != ''
+        if: ${{ secrets.NPM_TOKEN != '' }}
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -99,7 +102,7 @@ jobs:
       # 3. Publish to Maven Central (Optional if secrets are set)
       # -------------------------------------------------------------
       - name: Publish to Maven Central
-        if: env.MAVEN_USERNAME != ''
+        if: ${{ secrets.OSSRH_USERNAME != '' }}
         run: ./mvnw clean deploy -P release -DskipTests
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
