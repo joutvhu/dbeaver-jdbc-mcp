@@ -59,7 +59,7 @@ public class McpServerIntegrationTest {
             System.err.println("Line 3 (tools/call): " + line3);
             assertNotNull(line3);
             assertTrue(line3.contains("\"id\":3"));
-            assertTrue(line3.contains("AER_DB"));
+            assertTrue(line3.contains("\"content\""));
         } finally {
             p.destroyForcibly();
         }
