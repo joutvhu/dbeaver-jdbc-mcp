@@ -33,7 +33,9 @@ function syncVersion() {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const currentVersion = pkg.version;
 
-    let targetVersion = process.env.npm_package_version;
+    // Detect if invoked from npm version lifecycle hook
+    const isNpmVersionHook = process.env.npm_lifecycle_event === 'version';
+    let targetVersion = null;
     const arg = process.argv[2];
 
     if (arg) {
@@ -43,8 +45,12 @@ function syncVersion() {
         } else {
             targetVersion = arg.replace(/^v/, '');
         }
-    } else if (!targetVersion) {
-        targetVersion = currentVersion;
+    } else if (isNpmVersionHook && process.env.npm_package_version) {
+        // Invoked via `npm version [patch|minor|major]` where npm already updated package.json
+        targetVersion = process.env.npm_package_version.replace(/^v/, '');
+    } else {
+        // Default when running `npm run bump` without arguments: bump patch
+        targetVersion = bumpSemver(currentVersion, 'patch');
     }
 
     console.log(`[bump-version] Synchronizing version: ${currentVersion} -> ${targetVersion}`);

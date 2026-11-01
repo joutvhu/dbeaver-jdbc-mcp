@@ -6,7 +6,7 @@
 
     <groupId>com.github.joutvhu</groupId>
     <artifactId>dbeaver-jdbc-mcp</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <name>DBeaver JDBC MCP Server</name>

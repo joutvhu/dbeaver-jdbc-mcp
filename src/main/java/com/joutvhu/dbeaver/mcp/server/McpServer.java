@@ -129,7 +129,7 @@ public class McpServer {
 
         String serverVersion = McpServer.class.getPackage() != null ? McpServer.class.getPackage().getImplementationVersion() : null;
         if (serverVersion == null || serverVersion.trim().isEmpty()) {
-            serverVersion = "1.0.0";
+            serverVersion = "1.0.1";
         }
 
         Implementation serverInfo = Implementation.builder("dbeaver-database", serverVersion)

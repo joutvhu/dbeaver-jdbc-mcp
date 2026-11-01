@@ -1,6 +1,6 @@
 {
   "name": "dbeaver-jdbc-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Model Context Protocol (MCP) server for DBeaver database connections with dynamic JDBC driver loading",
   "main": "bin/index.js",
   "bin": {
@@ -10,7 +10,10 @@
     "start": "node bin/index.js",
     "prepack": "node scripts/publish-local.js --build-only",
     "publish:local": "node scripts/publish-local.js",
-    "bump": "node scripts/bump-version.js",
+    "bump": "node scripts/bump-version.js patch",
+    "bump:patch": "node scripts/bump-version.js patch",
+    "bump:minor": "node scripts/bump-version.js minor",
+    "bump:major": "node scripts/bump-version.js major",
     "version": "node scripts/bump-version.js"
   },
   "repository": {
