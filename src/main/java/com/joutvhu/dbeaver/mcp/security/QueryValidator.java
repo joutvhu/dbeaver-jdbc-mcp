@@ -12,7 +12,7 @@ public class QueryValidator {
             Pattern.compile("\\balter\\s+\\S+", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\bgrant\\s+", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\brevoke\\s+", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("\\bcreate\\s+(?:table|index|view|user|role|database|schema|function|procedure|trigger|sequence|type|extension|materialized\\s+view)\\b", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("\\bcreate\\s+(?:or\\s+replace\\s+)?(?:table|index|view|user|role|database|schema|function|procedure|trigger|sequence|type|extension|materialized\\s+view)\\b", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\bshutdown\\b", Pattern.CASE_INSENSITIVE),
             Pattern.compile("\\binto\\s+(?:outfile|dumpfile)\\b", Pattern.CASE_INSENSITIVE)
     );
@@ -98,19 +98,10 @@ public class QueryValidator {
             throw new IllegalArgumentException("Only read-only queries (SELECT, WITH, EXPLAIN, SHOW, DESCRIBE, PRAGMA) are allowed. Use 'execute' for data modifications.");
         }
 
-        // Prevent data modification inside CTE (e.g. WITH d AS (DELETE FROM ...) SELECT ...)
-        if (prefixChecked.toLowerCase().startsWith("with")) {
-            if (WRITE_KEYWORDS_IN_READ_ONLY.matcher(cleanSql).find()) {
-                throw new IllegalArgumentException("Data modification or DDL statements inside CTE (WITH ...) are not allowed in read-only queries.");
-            }
-        }
-
-        // Prevent execution via EXPLAIN ANALYZE
-        if (prefixChecked.toLowerCase().startsWith("explain")) {
-            if (Pattern.compile("\\banalyze\\b", Pattern.CASE_INSENSITIVE).matcher(cleanSql).find()
-                    && WRITE_KEYWORDS_IN_READ_ONLY.matcher(cleanSql).find()) {
-                throw new IllegalArgumentException("EXPLAIN ANALYZE with data modification is blocked in read-only queries.");
-            }
+        // Prevent data modification or DDL anywhere in read-only queries
+        // (blocks CTE writes, subquery writes, and multi-statements on engines like T-SQL without semicolons)
+        if (WRITE_KEYWORDS_IN_READ_ONLY.matcher(cleanSql).find()) {
+            throw new IllegalArgumentException("Data modification or DDL statements (INSERT, UPDATE, DELETE, MERGE, DROP, etc.) are not allowed in read-only queries.");
         }
 
         // Prevent SELECT INTO table creation

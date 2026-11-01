@@ -272,6 +272,18 @@ public class DBeaverConfigParser {
                 String remainder = matcher.group(2) != null ? matcher.group(2) : "";
 
                 String hostPart = authority;
+                // If authority contains user credentials (e.g. user:pass@host:port), extract host:port and optional user
+                if (hostPart.contains("@")) {
+                    int lastAt = hostPart.lastIndexOf('@');
+                    String credPart = hostPart.substring(0, lastAt);
+                    hostPart = hostPart.substring(lastAt + 1);
+                    if ((conn.getUser() == null || conn.getUser().isEmpty()) && credPart.contains(":")) {
+                        conn.setUser(credPart.split(":", 2)[0]);
+                    } else if (conn.getUser() == null || conn.getUser().isEmpty()) {
+                        conn.setUser(credPart);
+                    }
+                }
+
                 Integer port = null;
                 if (hostPart.contains("\\")) {
                     String[] parts = hostPart.split("\\\\", 2);

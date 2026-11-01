@@ -83,6 +83,20 @@ public class DatabaseService {
                     tables.add(row);
                 }
             }
+
+            // Fallback for MySQL/MariaDB: in MySQL, databases are catalogs (TABLE_CAT) and schema (TABLE_SCHEM) is null
+            if (tables.isEmpty() && schemaPattern != null) {
+                try (ResultSet rs = meta.getTables(schemaPattern, null, "%", types)) {
+                    while (rs.next()) {
+                        Map<String, Object> row = new LinkedHashMap<>();
+                        row.put("table_name", rs.getString("TABLE_NAME"));
+                        row.put("table_type", rs.getString("TABLE_TYPE"));
+                        row.put("table_schema", rs.getString("TABLE_SCHEM"));
+                        row.put("table_cat", rs.getString("TABLE_CAT"));
+                        tables.add(row);
+                    }
+                }
+            }
         }
         return tables;
     }
@@ -156,6 +170,34 @@ public class DatabaseService {
                 if (!columns.isEmpty()) {
                     break;
                 }
+
+                // Fallback for MySQL/MariaDB: if catalog is null and schema is set, try catalog = schema, schema = null
+                if (catalog == null && schema != null) {
+                    try (ResultSet pkRs = meta.getPrimaryKeys(schema, null, tableCandidate)) {
+                        while (pkRs.next()) {
+                            primaryKeys.add(pkRs.getString("COLUMN_NAME"));
+                        }
+                    } catch (Exception ignored) {}
+
+                    try (ResultSet colRs = meta.getColumns(schema, null, tableCandidate, "%")) {
+                        while (colRs.next()) {
+                            Map<String, Object> col = new LinkedHashMap<>();
+                            String colName = colRs.getString("COLUMN_NAME");
+                            col.put("column_name", colName);
+                            col.put("data_type", colRs.getString("TYPE_NAME"));
+                            col.put("column_size", colRs.getInt("COLUMN_SIZE"));
+                            col.put("decimal_digits", colRs.getInt("DECIMAL_DIGITS"));
+                            col.put("is_nullable", "YES".equalsIgnoreCase(colRs.getString("IS_NULLABLE")));
+                            col.put("column_default", colRs.getString("COLUMN_DEF"));
+                            col.put("is_primary_key", primaryKeys.contains(colName));
+                            columns.add(col);
+                        }
+                    }
+
+                    if (!columns.isEmpty()) {
+                        break;
+                    }
+                }
             }
 
             response.put("columns", columns);
@@ -170,11 +212,10 @@ public class DatabaseService {
         Map<String, Object> result = new LinkedHashMap<>();
 
         try (Connection conn = openConnection(connInfo)) {
-            if (connInfo.isReadonly()) {
-                try {
-                    conn.setReadOnly(true);
-                } catch (Exception ignored) {}
-            }
+            // Enforce JDBC read-only mode for read queries whenever supported
+            try {
+                conn.setReadOnly(true);
+            } catch (Exception ignored) {}
 
             try (Statement stmt = conn.createStatement()) {
                 // Apply query timeout if set

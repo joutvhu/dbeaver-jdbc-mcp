@@ -71,6 +71,47 @@ public class DBeaverConfigParserTest {
     }
 
     @Test
+    public void testUrlCredentialsSanitization() {
+        ConnectionInfo info = new ConnectionInfo();
+        info.setId("test-url-cred");
+        info.setUrl("jdbc:postgresql://postgres:SuperSecret123@db.example.com:5432/mydb?password=ParamSecret");
+
+        ConnectionInfo redacted = info.redacted();
+        assertFalse(redacted.getUrl().contains("SuperSecret123"), "URL should not expose embedded user:password credentials");
+        assertFalse(redacted.getUrl().contains("ParamSecret"), "URL should not expose password in parameters");
+        assertTrue(redacted.getUrl().contains("***REDACTED***"));
+    }
+
+    @Test
+    public void testFillFromUrlWithEmbeddedCredentials(@TempDir Path tempDir) throws Exception {
+        Path generalDir = tempDir.resolve("General").resolve(".dbeaver");
+        Files.createDirectories(generalDir);
+
+        String dataSourcesJson = "{\n" +
+                "  \"connections\": {\n" +
+                "    \"mock-conn-url\": {\n" +
+                "      \"name\": \"Mock Cloud Postgres\",\n" +
+                "      \"driver\": \"postgres-jdbc\",\n" +
+                "      \"configuration\": {\n" +
+                "        \"url\": \"jdbc:postgresql://dbadmin:p@ssword!@myhost.domain.com:5432/proddb\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        Files.writeString(generalDir.resolve("data-sources.json"), dataSourcesJson, StandardCharsets.UTF_8);
+
+        DBeaverConfigParser parser = new DBeaverConfigParser(tempDir.toString(), false);
+        List<ConnectionInfo> connections = parser.parseConnections();
+
+        assertEquals(1, connections.size());
+        ConnectionInfo conn = connections.get(0);
+        assertEquals("myhost.domain.com", conn.getHost(), "Host should be extracted properly without username");
+        assertEquals(5432, conn.getPort());
+        assertEquals("dbadmin", conn.getUser());
+        assertEquals("proddb", conn.getDatabase());
+    }
+
+    @Test
     public void testSystemDBeaverDiscovery() {
         DBeaverConfigParser parser = new DBeaverConfigParser();
         List<ConnectionInfo> connections = parser.parseConnections();

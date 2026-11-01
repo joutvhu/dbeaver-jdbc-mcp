@@ -36,6 +36,14 @@ public class QueryValidatorTest {
         // CTE with data modification
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("WITH deleted AS (DELETE FROM users RETURNING *) SELECT * FROM deleted"));
 
+        // Nested CTE in subquery with data modification
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT (WITH deleted AS (DELETE FROM users RETURNING 1) SELECT count(*) FROM deleted)"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT * FROM (WITH deleted AS (DELETE FROM users RETURNING *) SELECT * FROM deleted) a"));
+
+        // Multi-statement without semicolon (T-SQL style)
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT 1 DELETE FROM users"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT 1 INSERT INTO users VALUES (1)"));
+
         // EXPLAIN ANALYZE with DELETE
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("EXPLAIN ANALYZE DELETE FROM users"));
 

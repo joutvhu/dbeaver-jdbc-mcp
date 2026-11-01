@@ -142,7 +142,7 @@ public class ConnectionInfo {
         copy.name = this.name;
         copy.driver = this.driver;
         copy.provider = this.provider;
-        copy.url = this.url;
+        copy.url = sanitizeUrl(this.url);
         copy.host = this.host;
         copy.port = this.port;
         copy.database = this.database;
@@ -164,5 +164,39 @@ public class ConnectionInfo {
         }
         copy.properties = redactedProps;
         return copy;
+    }
+
+    public static String sanitizeUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return url;
+        }
+
+        String sanitized = url;
+        int schemeEnd = sanitized.indexOf("://");
+        if (schemeEnd != -1) {
+            int authStart = schemeEnd + 3;
+            int pathStart = sanitized.indexOf('/', authStart);
+            int queryStart = sanitized.indexOf('?', authStart);
+            int semiStart = sanitized.indexOf(';', authStart);
+            int authEnd = sanitized.length();
+            if (pathStart != -1 && pathStart < authEnd) authEnd = pathStart;
+            if (queryStart != -1 && queryStart < authEnd) authEnd = queryStart;
+            if (semiStart != -1 && semiStart < authEnd) authEnd = semiStart;
+
+            String authority = sanitized.substring(authStart, authEnd);
+            int lastAt = authority.lastIndexOf('@');
+            if (lastAt != -1) {
+                int firstColon = authority.indexOf(':');
+                if (firstColon != -1 && firstColon < lastAt) {
+                    String user = authority.substring(0, firstColon);
+                    String hostAndPort = authority.substring(lastAt);
+                    sanitized = sanitized.substring(0, authStart) + user + ":***REDACTED***" + hostAndPort + sanitized.substring(authEnd);
+                }
+            }
+        }
+
+        // Mask parameter-based credentials, e.g. ;password=xxx or ?password=xxx
+        sanitized = sanitized.replaceAll("(?i)([?&;](?:password|pwd|secret|token)=)[^&;]+", "$1***REDACTED***");
+        return sanitized;
     }
 }

@@ -106,11 +106,11 @@ jobs:
         run: |
           if [ -n "$MAVEN_USERNAME" ] && [ -n "$MAVEN_PASSWORD" ]; then
             echo "Publishing to Maven Central..."
-            ./mvnw clean deploy -P release -DskipTests
+            ./mvnw clean deploy -P release -DskipTests -Dgpg.passphrase="${GPG_PASSPHRASE}"
           else
             echo "::notice::OSSRH secrets are not set. Skipping Maven Central publish."
           fi
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
