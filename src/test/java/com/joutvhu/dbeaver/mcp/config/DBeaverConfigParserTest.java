@@ -123,6 +123,74 @@ public class DBeaverConfigParserTest {
     }
 
     @Test
+    public void testGetConnectionLookup(@TempDir Path tempDir) throws Exception {
+        Path generalDir = tempDir.resolve("General").resolve(".dbeaver");
+        Files.createDirectories(generalDir);
+
+        String dataSourcesJson = "{\n" +
+                "  \"connections\": {\n" +
+                "    \"conn-abc\": {\n" +
+                "      \"name\": \"Analytics DB\",\n" +
+                "      \"driver\": \"postgres-jdbc\",\n" +
+                "      \"configuration\": { \"host\": \"analytics.local\", \"database\": \"analytics\" }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        Files.writeString(generalDir.resolve("data-sources.json"), dataSourcesJson, StandardCharsets.UTF_8);
+
+        DBeaverConfigParser parser = new DBeaverConfigParser(tempDir.toString(), false);
+        assertNotNull(parser.getConnection("conn-abc"));
+        assertNotNull(parser.getConnection("Analytics DB"));
+        assertNotNull(parser.getConnection("analytics db")); // case-insensitive
+        assertNull(parser.getConnection("non-existent"));
+        assertNull(parser.getConnection(null));
+        assertNull(parser.getConnection("   "));
+    }
+
+    @Test
+    public void testMultipleProjectsDiscovery(@TempDir Path tempDir) throws Exception {
+        // Project 1: General
+        Path generalDir = tempDir.resolve("General").resolve(".dbeaver");
+        Files.createDirectories(generalDir);
+        Files.writeString(generalDir.resolve("data-sources.json"),
+                "{\"connections\":{\"conn-1\":{\"name\":\"Conn 1\",\"driver\":\"postgres\"}}}", StandardCharsets.UTF_8);
+
+        // Project 2: FinanceProject
+        Path financeDir = tempDir.resolve("FinanceProject").resolve(".dbeaver");
+        Files.createDirectories(financeDir);
+        Files.writeString(financeDir.resolve("data-sources.json"),
+                "{\"connections\":{\"conn-2\":{\"name\":\"Conn 2\",\"driver\":\"mysql\"}}}", StandardCharsets.UTF_8);
+
+        // Ignored folder: .metadata
+        Path metaDir = tempDir.resolve(".metadata").resolve(".dbeaver");
+        Files.createDirectories(metaDir);
+        Files.writeString(metaDir.resolve("data-sources.json"),
+                "{\"connections\":{\"conn-meta\":{\"name\":\"Meta Conn\",\"driver\":\"sqlite\"}}}", StandardCharsets.UTF_8);
+
+        DBeaverConfigParser parser = new DBeaverConfigParser(tempDir.toString(), true);
+        List<ConnectionInfo> list = parser.parseConnections();
+
+        assertEquals(2, list.size());
+        assertTrue(list.stream().anyMatch(c -> "conn-1".equals(c.getId())));
+        assertTrue(list.stream().anyMatch(c -> "conn-2".equals(c.getId())));
+        assertFalse(list.stream().anyMatch(c -> "conn-meta".equals(c.getId())));
+    }
+
+    @Test
+    public void testDefaultWorkspacePath() {
+        String path = DBeaverConfigParser.defaultWorkspacePath();
+        assertNotNull(path);
+        assertTrue(path.contains("DBeaverData") && path.contains("workspace6"));
+    }
+
+    @Test
+    public void testDecryptInvalidData() {
+        // Invalid ciphertext returns null without throwing uncaught exception
+        byte[] garbage = new byte[]{1, 2, 3, 4, 5};
+        assertNull(DBeaverConfigParser.decryptCredentials(garbage));
+    }
+
+    @Test
     public void testAesEncryptionRoundTrip() throws Exception {
         String plainJson = "{\"test-id\":{\"#connection\":{\"user\":\"admin\",\"password\":\"secret123\"}}}";
         byte[] encrypted = encryptCredentials(plainJson, DEFAULT_KEY, DEFAULT_IV);

@@ -54,17 +54,37 @@ public class McpServerIntegrationTest {
             assertTrue(line2.contains("\"id\":2"));
             assertTrue(line2.contains("list_connections"));
 
-            // 4. tools/call
+            // 4. tools/call list_connections
             os.write("{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"list_connections\",\"arguments\":{\"details\":false}}}\n".getBytes(StandardCharsets.UTF_8));
             os.flush();
 
             String line3 = reader.readLine();
-            System.err.println("Line 3 (tools/call): " + line3);
+            System.err.println("Line 3 (tools/call list_connections): " + line3);
             assertNotNull(line3);
             assertTrue(line3.contains("\"id\":3"));
             assertTrue(line3.contains("\"content\""));
 
-            // 5. Verify clean shutdown on stdin EOF (client disconnection)
+            // 5. tools/call debug_info
+            os.write("{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"debug_info\",\"arguments\":{}}}\n".getBytes(StandardCharsets.UTF_8));
+            os.flush();
+
+            String line4 = reader.readLine();
+            System.err.println("Line 4 (tools/call debug_info): " + line4);
+            assertNotNull(line4);
+            assertTrue(line4.contains("\"id\":4"));
+            assertTrue(line4.contains("workspace_path"));
+
+            // 6. tools/call test_connection with non-existent connection
+            os.write("{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"test_connection\",\"arguments\":{\"connection_id\":\"non-existent\"}}}\n".getBytes(StandardCharsets.UTF_8));
+            os.flush();
+
+            String line5 = reader.readLine();
+            System.err.println("Line 5 (tools/call test_connection error): " + line5);
+            assertNotNull(line5);
+            assertTrue(line5.contains("\"id\":5"));
+            assertTrue(line5.contains("Connection not found"));
+
+            // 7. Verify clean shutdown on stdin EOF (client disconnection)
             os.close();
             boolean finished = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
             assertTrue(finished, "Server process should terminate cleanly when stdin is closed");

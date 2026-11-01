@@ -21,7 +21,22 @@ public class DriverRegistryTest {
         // skip driver assertions gracefully.
         Assumptions.assumeFalse(loadedClasses.isEmpty(),
                 "No DBeaver drivers found on this system (skipping in clean CI environment)");
-
         assertTrue(loadedClasses.size() > 0, "Should have loaded at least one JDBC driver");
+    }
+
+    @Test
+    public void testConnectInvalidUrls() {
+        DriverRegistry registry = DriverRegistry.getInstance();
+        assertThrows(java.sql.SQLException.class, () -> registry.connect(null, new java.util.Properties()));
+        assertThrows(java.sql.SQLException.class, () -> registry.connect("", new java.util.Properties()));
+        assertThrows(java.sql.SQLException.class, () -> registry.connect("   ", new java.util.Properties()));
+        assertThrows(java.sql.SQLException.class, () -> registry.connect("jdbc:nonexistentdriver://localhost:1234/test", new java.util.Properties()));
+    }
+
+    @Test
+    public void testGettersNonNull() {
+        DriverRegistry registry = DriverRegistry.getInstance();
+        assertNotNull(registry.getLoadedJarPaths());
+        assertNotNull(registry.getLoadedDriverClassNames());
     }
 }

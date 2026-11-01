@@ -50,7 +50,16 @@ public class QueryValidator {
 
     private static final Pattern WHERE_CLAUSE_PATTERN = Pattern.compile("\\bwhere\\b", Pattern.CASE_INSENSITIVE);
 
+    private static volatile Boolean readOnlyModeOverride = null;
+
+    public static void setReadOnlyModeOverride(Boolean override) {
+        readOnlyModeOverride = override;
+    }
+
     public static boolean isReadOnlyMode() {
+        if (readOnlyModeOverride != null) {
+            return readOnlyModeOverride;
+        }
         String ro = System.getenv("DBEAVER_READ_ONLY");
         if (ro == null || ro.trim().isEmpty()) {
             ro = System.getenv("READ_ONLY");

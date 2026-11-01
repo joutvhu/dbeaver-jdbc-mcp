@@ -191,7 +191,7 @@ public class McpServer {
     }
 
     // 1. list_connections
-    private SyncToolSpecification createListConnectionsTool() {
+    SyncToolSpecification createListConnectionsTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -255,7 +255,7 @@ public class McpServer {
     }
 
     // 2. test_connection
-    private SyncToolSpecification createTestConnectionTool() {
+    SyncToolSpecification createTestConnectionTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -299,7 +299,7 @@ public class McpServer {
     }
 
     // 3. list_tables
-    private SyncToolSpecification createListTablesTool() {
+    SyncToolSpecification createListTablesTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -354,7 +354,7 @@ public class McpServer {
     }
 
     // 4. describe_table
-    private SyncToolSpecification createDescribeTableTool() {
+    SyncToolSpecification createDescribeTableTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -409,7 +409,7 @@ public class McpServer {
     }
 
     // 5. query
-    private SyncToolSpecification createQueryTool() {
+    SyncToolSpecification createQueryTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -464,7 +464,7 @@ public class McpServer {
     }
 
     // 6. export_query
-    private SyncToolSpecification createExportQueryTool() {
+    SyncToolSpecification createExportQueryTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -560,7 +560,7 @@ public class McpServer {
     }
 
     // 7. execute
-    private SyncToolSpecification createExecuteTool() {
+    SyncToolSpecification createExecuteTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -611,7 +611,7 @@ public class McpServer {
     }
 
     // 8. db_stats
-    private SyncToolSpecification createDbStatsTool() {
+    SyncToolSpecification createDbStatsTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Map.of(
@@ -655,7 +655,7 @@ public class McpServer {
     }
 
     // 9. debug_info
-    private SyncToolSpecification createDebugInfoTool() {
+    SyncToolSpecification createDebugInfoTool() {
         Map<String, Object> schema = Map.of(
                 "type", "object",
                 "properties", Collections.emptyMap()
@@ -692,7 +692,7 @@ public class McpServer {
                 .build();
     }
 
-    private String escapeCsv(String value) {
+    String escapeCsv(String value) {
         if (value == null) return "";
         if (value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
@@ -700,13 +700,13 @@ public class McpServer {
         return value;
     }
 
-    private boolean parseBoolean(Object val) {
+    boolean parseBoolean(Object val) {
         if (val == null) return false;
         if (val instanceof Boolean) return (Boolean) val;
         return "true".equalsIgnoreCase(val.toString().trim());
     }
 
-    private int parseInteger(Object val, int defaultVal) {
+    int parseInteger(Object val, int defaultVal) {
         if (val == null) return defaultVal;
         if (val instanceof Number) return ((Number) val).intValue();
         try {
@@ -716,7 +716,7 @@ public class McpServer {
         }
     }
 
-    private String resolveUniqueKey(Map<String, Object> obj, String key) {
+    String resolveUniqueKey(Map<String, Object> obj, String key) {
         if (!obj.containsKey(key)) {
             return key;
         }
