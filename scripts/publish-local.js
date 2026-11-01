@@ -40,6 +40,11 @@ console.log('\n=== [2/3] Copying JAR to root for package distribution ===');
 fs.copyFileSync(targetJar, rootJar);
 console.log('Copied ' + targetJar + ' -> ' + rootJar);
 
+if (process.argv.includes('--build-only')) {
+    console.log('\n[SUCCESS] Fat JAR successfully built and copied for distribution.');
+    process.exit(0);
+}
+
 console.log('\n=== [3/3] Installing into global npm directory (npm install -g) ===');
 
 // On Windows, if an MCP server or client is running dbeaver-jdbc-mcp.jar, the file is locked (EBUSY).

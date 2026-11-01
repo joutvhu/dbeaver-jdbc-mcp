@@ -20,7 +20,10 @@ public class McpServerIntegrationTest {
             return;
         }
 
-        ProcessBuilder pb = new ProcessBuilder("java", "-jar", jarPath);
+        String javaHome = System.getProperty("java.home");
+        String javaBin = (javaHome != null) ? java.nio.file.Paths.get(javaHome, "bin", "java").toString() : "java";
+
+        ProcessBuilder pb = new ProcessBuilder(javaBin, "-jar", jarPath);
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         Process p = pb.start();
 
@@ -60,8 +63,16 @@ public class McpServerIntegrationTest {
             assertNotNull(line3);
             assertTrue(line3.contains("\"id\":3"));
             assertTrue(line3.contains("\"content\""));
+
+            // 5. Verify clean shutdown on stdin EOF (client disconnection)
+            os.close();
+            boolean finished = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue(finished, "Server process should terminate cleanly when stdin is closed");
+            assertEquals(0, p.exitValue());
         } finally {
-            p.destroyForcibly();
+            if (p.isAlive()) {
+                p.destroyForcibly();
+            }
         }
     }
 }

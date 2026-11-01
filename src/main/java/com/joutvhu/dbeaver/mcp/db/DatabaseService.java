@@ -88,12 +88,16 @@ public class DatabaseService {
     }
 
     public Map<String, Object> describeTable(ConnectionInfo connInfo, String tableName) throws SQLException {
+        return describeTable(connInfo, null, tableName);
+    }
+
+    public Map<String, Object> describeTable(ConnectionInfo connInfo, String schemaName, String tableName) throws SQLException {
         if (tableName == null || tableName.trim().isEmpty()) {
             throw new IllegalArgumentException("table_name cannot be empty");
         }
 
         String catalog = null;
-        String schema = null;
+        String schema = (schemaName != null && !schemaName.trim().isEmpty()) ? stripQuotes(schemaName.trim()) : null;
         String rawTable = tableName.trim();
         if (rawTable.contains(".")) {
             String[] parts = rawTable.split("\\.");
@@ -111,6 +115,9 @@ public class DatabaseService {
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("table_name", tableName);
+        if (schema != null) {
+            response.put("schema", schema);
+        }
 
         try (Connection conn = openConnection(connInfo)) {
             DatabaseMetaData meta = conn.getMetaData();
@@ -121,6 +128,8 @@ public class DatabaseService {
             Set<String> primaryKeys = new HashSet<>();
 
             for (String tableCandidate : tableCandidates) {
+                primaryKeys.clear();
+
                 // Primary Keys
                 try (ResultSet pkRs = meta.getPrimaryKeys(catalog, schema, tableCandidate)) {
                     while (pkRs.next()) {
@@ -247,10 +256,36 @@ public class DatabaseService {
                     } catch (Exception ignored) {}
                 }
 
-                int affectedRows = stmt.executeUpdate(sql);
+                boolean hasResultSet = stmt.execute(sql);
+                if (hasResultSet) {
+                    try (ResultSet rs = stmt.getResultSet()) {
+                        ResultSetMetaData md = rs.getMetaData();
+                        int colCount = md.getColumnCount();
+                        List<String> columnNames = new ArrayList<>();
+                        for (int i = 1; i <= colCount; i++) {
+                            columnNames.add(md.getColumnLabel(i));
+                        }
+
+                        List<List<Object>> rows = new ArrayList<>();
+                        while (rs.next()) {
+                            List<Object> row = new ArrayList<>(colCount);
+                            for (int i = 1; i <= colCount; i++) {
+                                row.add(formatJdbcValue(rs.getObject(i)));
+                            }
+                            rows.add(row);
+                        }
+
+                        result.put("columns", columnNames);
+                        result.put("rows", rows);
+                        result.put("row_count", rows.size());
+                    }
+                    result.put("affected_rows", stmt.getUpdateCount());
+                } else {
+                    int affectedRows = stmt.getUpdateCount();
+                    result.put("affected_rows", affectedRows);
+                }
                 conn.commit();
                 result.put("success", true);
-                result.put("affected_rows", affectedRows);
             } catch (Exception e) {
                 conn.rollback();
                 throw e;
@@ -314,6 +349,8 @@ public class DatabaseService {
             return "jdbc:sqlite:" + db;
         } else if (driver.contains("duckdb") || provider.contains("duckdb")) {
             return "jdbc:duckdb:" + db;
+        } else if (driver.contains("h2") || provider.contains("h2")) {
+            return "jdbc:h2:" + (host.equalsIgnoreCase("localhost") ? "" : "tcp://" + host + "/") + db;
         } else if (driver.contains("clickhouse") || provider.contains("clickhouse")) {
             return "jdbc:clickhouse://" + host + ":" + (port != null ? port : 8123) + "/" + db;
         }
@@ -326,14 +363,26 @@ public class DatabaseService {
         }
         if (val instanceof Clob) {
             Clob clob = (Clob) val;
-            long len = clob.length();
-            return clob.getSubString(1, (int) Math.min(len, 500_000));
+            try {
+                long len = clob.length();
+                return clob.getSubString(1, (int) Math.min(len, 500_000));
+            } finally {
+                try {
+                    clob.free();
+                } catch (Throwable ignored) {}
+            }
         }
         if (val instanceof Blob) {
             Blob blob = (Blob) val;
-            long len = blob.length();
-            byte[] bytes = blob.getBytes(1, (int) Math.min(len, 50_000));
-            return Base64.getEncoder().encodeToString(bytes);
+            try {
+                long len = blob.length();
+                byte[] bytes = blob.getBytes(1, (int) Math.min(len, 50_000));
+                return Base64.getEncoder().encodeToString(bytes);
+            } finally {
+                try {
+                    blob.free();
+                } catch (Throwable ignored) {}
+            }
         }
         if (val instanceof java.sql.Array) {
             try {

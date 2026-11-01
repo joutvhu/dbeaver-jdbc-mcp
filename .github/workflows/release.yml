@@ -28,7 +28,7 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -48,13 +48,10 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Releasing version: ${VERSION} from tag: ${RAW_TAG}"
 
-      - name: Update versions in pom.xml and package.json
+      - name: Update versions across project files
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          # Update Maven version using wrapper
-          ./mvnw versions:set -DnewVersion=${VERSION} -DgenerateBackupPoms=false
-          # Update NPM package.json version in root
-          npm version ${VERSION} --allow-same-version --no-git-tag-version
+          node scripts/bump-version.js ${VERSION}
 
       - name: Build Fat JAR with Maven Wrapper
         run: |

@@ -14,6 +14,32 @@ if not exist "%JAR_PATH%" (
 
 set "JAVA_CMD="
 
+REM 0. Check custom Java path from environment
+if defined DBEAVER_MCP_JAVA_PATH (
+    if exist "%DBEAVER_MCP_JAVA_PATH%" (
+        set "JAVA_CMD=%DBEAVER_MCP_JAVA_PATH%"
+        goto :found_java
+    )
+)
+if defined DBEAVER_JAVA_PATH (
+    if exist "%DBEAVER_JAVA_PATH%" (
+        set "JAVA_CMD=%DBEAVER_JAVA_PATH%"
+        goto :found_java
+    )
+)
+if defined DBEAVER_MCP_JAVA_HOME (
+    if exist "%DBEAVER_MCP_JAVA_HOME%\bin\java.exe" (
+        set "JAVA_CMD=%DBEAVER_MCP_JAVA_HOME%\bin\java.exe"
+        goto :found_java
+    )
+)
+if defined DBEAVER_JAVA_HOME (
+    if exist "%DBEAVER_JAVA_HOME%\bin\java.exe" (
+        set "JAVA_CMD=%DBEAVER_JAVA_HOME%\bin\java.exe"
+        goto :found_java
+    )
+)
+
 REM 1. Check DBeaver installation from Windows Registry (HKLM, WOW6432Node, HKCU)
 for %%K in (
     "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"

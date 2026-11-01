@@ -14,6 +14,17 @@ fi
 
 JAVA_CMD=""
 
+# 0. Check custom Java path from environment
+CUSTOM_JAVA_PATH="${DBEAVER_MCP_JAVA_PATH:-$DBEAVER_JAVA_PATH}"
+if [ -n "$CUSTOM_JAVA_PATH" ] && [ -x "$CUSTOM_JAVA_PATH" ]; then
+    JAVA_CMD="$CUSTOM_JAVA_PATH"
+fi
+
+CUSTOM_JAVA_HOME="${DBEAVER_MCP_JAVA_HOME:-$DBEAVER_JAVA_HOME}"
+if [ -z "$JAVA_CMD" ] && [ -n "$CUSTOM_JAVA_HOME" ] && [ -x "$CUSTOM_JAVA_HOME/bin/java" ]; then
+    JAVA_CMD="$CUSTOM_JAVA_HOME/bin/java"
+fi
+
 # 1. Check macOS DBeaver bundle JRE
 if [ -d "/Applications/DBeaver.app/Contents/Eclipse/jre/Home/bin" ]; then
     JAVA_CMD="/Applications/DBeaver.app/Contents/Eclipse/jre/Home/bin/java"

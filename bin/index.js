@@ -27,6 +27,25 @@ function getWindowsDrives() {
 }
 
 function findJavaExecutable() {
+    // 0. Check explicit custom Java executable path
+    const customJavaPath = process.env.DBEAVER_MCP_JAVA_PATH || process.env.DBEAVER_JAVA_PATH;
+    if (customJavaPath) {
+        const cleanPath = customJavaPath.replace(/^"(.*)"$/, '$1').trim();
+        if (fs.existsSync(cleanPath)) {
+            return cleanPath;
+        }
+    }
+
+    // 0.1 Check explicit custom Java home
+    const customJavaHome = process.env.DBEAVER_MCP_JAVA_HOME || process.env.DBEAVER_JAVA_HOME;
+    if (customJavaHome) {
+        const rawHome = customJavaHome.replace(/^"(.*)"$/, '$1').trim();
+        const binJava = path.join(rawHome, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+        if (fs.existsSync(binJava)) {
+            return binJava;
+        }
+    }
+
     // 1. Check JAVA_HOME
     if (process.env.JAVA_HOME) {
         const rawHome = process.env.JAVA_HOME.replace(/^"(.*)"$/, '$1').trim();

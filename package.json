@@ -8,7 +8,10 @@
   },
   "scripts": {
     "start": "node bin/index.js",
-    "publish:local": "node scripts/publish-local.js"
+    "prepack": "node scripts/publish-local.js --build-only",
+    "publish:local": "node scripts/publish-local.js",
+    "bump": "node scripts/bump-version.js",
+    "version": "node scripts/bump-version.js"
   },
   "repository": {
     "type": "git",

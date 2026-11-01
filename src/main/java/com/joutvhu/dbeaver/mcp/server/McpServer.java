@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class McpServer {
     private final ObjectMapper mapper = new ObjectMapper();
@@ -160,13 +161,20 @@ public class McpServer {
 
         System.err.println("[McpServer] Server listening on STDIO...");
 
+        AtomicBoolean isClosed = new AtomicBoolean(false);
+        Runnable cleanup = () -> {
+            if (isClosed.compareAndSet(false, true)) {
+                try {
+                    syncServer.close();
+                } catch (Exception ignored) {
+                }
+            }
+        };
+
         Thread shutdownHook = new Thread(() -> {
             closeLatch.countDown();
-            try {
-                syncServer.close();
-            } catch (Exception ignored) {
-            }
-        });
+            cleanup.run();
+        }, "mcp-shutdown-hook");
         Runtime.getRuntime().addShutdownHook(shutdownHook);
 
         // Keep main thread alive until stdin reaches EOF or shutdown hook fires
@@ -175,14 +183,10 @@ public class McpServer {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } finally {
-            try {
-                Runtime.getRuntime().removeShutdownHook(shutdownHook);
-            } catch (Exception ignored) {
-            }
-            try {
-                syncServer.close();
-            } catch (Exception ignored) {
-            }
+            cleanup.run();
+            // Stdio client disconnected. Force clean JVM exit so any background threads
+            // from dynamically loaded JDBC drivers or Project Reactor do not keep the process hanging.
+            System.exit(0);
         }
     }
 
@@ -361,6 +365,10 @@ public class McpServer {
                         "table_name", Map.of(
                                 "type", "string",
                                 "description", "The name of the table to describe."
+                        ),
+                        "schema", Map.of(
+                                "type", "string",
+                                "description", "Optional schema name to filter by (e.g. 'dbo', 'public')."
                         )
                 ),
                 "required", List.of("connection_id", "table_name")
@@ -377,6 +385,7 @@ public class McpServer {
                     try {
                         String connId = String.valueOf(request.arguments().get("connection_id"));
                         String tableName = String.valueOf(request.arguments().get("table_name"));
+                        String dbSchema = request.arguments().get("schema") != null ? String.valueOf(request.arguments().get("schema")) : null;
 
                         ConnectionInfo conn = configParser.getConnection(connId);
                         if (conn == null) {
@@ -385,7 +394,7 @@ public class McpServer {
                                     .content(List.of(new TextContent("Connection not found: " + connId)))
                                     .build();
                         }
-                        Map<String, Object> tableDesc = dbService.describeTable(conn, tableName);
+                        Map<String, Object> tableDesc = dbService.describeTable(conn, dbSchema, tableName);
                         return CallToolResult.builder()
                                 .content(List.of(new TextContent(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(tableDesc))))
                                 .build();

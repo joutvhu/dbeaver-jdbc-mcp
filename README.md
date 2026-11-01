@@ -107,6 +107,23 @@ npm run publish:local
 
 Script automatically builds the Fat JAR, packages it, and installs it directly into `npm -g`. You can then run `dbeaver-jdbc-mcp` from anywhere or configure `"command": "dbeaver-jdbc-mcp"` in your `mcp.json`. (To uninstall: `npm uninstall -g dbeaver-jdbc-mcp`).
 
+### 🏷 Bump Version
+
+To synchronize version bumps across `package.json`, `pom.xml`, `McpServer.java`, and `README.md`:
+
+```bash
+# Bump by semver increment:
+npm run bump patch   # 1.0.0 -> 1.0.1
+npm run bump minor   # 1.0.0 -> 1.1.0
+npm run bump major   # 1.0.0 -> 2.0.0
+
+# Or set an explicit version:
+npm run bump 1.2.0
+
+# Also automatically triggers when running npm version:
+npm version patch
+```
+
 ---
 
 ## 🛠 Available Tools
@@ -116,7 +133,7 @@ Script automatically builds the Fat JAR, packages it, and installs it directly i
 | `list_connections` | List all DBeaver database connections (passwords safely redacted). | `details` (boolean, optional) |
 | `test_connection` | Test connectivity, measuring latency and server version. | `connection_id` (string, required) |
 | `list_tables` | List tables and views across schemas using standard JDBC metadata. | `connection_id` (string), `schema` (optional), `include_views` (optional) |
-| `describe_table` | Describe table columns (types, sizes, nullability, defaults, primary keys). | `connection_id` (string), `table_name` (string) |
+| `describe_table` | Describe table columns (types, sizes, nullability, defaults, primary keys). | `connection_id` (string), `table_name` (string), `schema` (optional) |
 | `query` | Execute a safe, read-only SQL query (`SELECT`, `EXPLAIN`, `SHOW`, `DESCRIBE`). | `connection_id` (string), `sql` (string), `max_rows` (optional, default 1000) |
 | `export_query` | Execute a read-only query and export results as `json` or `csv`. | `connection_id` (string), `sql` (string), `format` ("json" \| "csv"), `max_rows` (optional) |
 | `execute` | Execute safe data modification (`INSERT`, `UPDATE with WHERE`, `DELETE with WHERE`, `MERGE`). Blocked when `READ_ONLY=true`. | `connection_id` (string), `sql` (string) |
@@ -140,7 +157,9 @@ All settings can be customized using environment variables:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `READ_ONLY` | Block data modifications (`true`/`false`). When `true`, `execute` is disabled. | `true` |
+| `DBEAVER_READ_ONLY` / `READ_ONLY` | Block data modifications (`true`/`false`). When `true`, `execute` is disabled. | `true` |
+| `DBEAVER_MCP_JAVA_PATH` | Explicit path to `java` executable binary. | Auto-detected |
+| `DBEAVER_MCP_JAVA_HOME` | Explicit path to JDK/JRE home directory. | Auto-detected |
 | `DBEAVER_AES_KEY` | AES encryption key for decrypting `credentials-config.json` (hex string or text). | `babb4a9f774ab853c96c2d653dfe544a` |
 | `DBEAVER_AES_IV` | AES Initialization Vector for credentials decryption (hex string or text). | 16 zero bytes (`0x00...`) |
 | `DBEAVER_WORKSPACE` | Custom path to DBeaver workspace directory. | Auto-detected (`%APPDATA%\DBeaverData\workspace6`) |

@@ -39,10 +39,6 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x mvnw
 
-      - name: Run Maven Tests
-        run: ./mvnw test
-        shell: bash
-
-      - name: Build Fat JAR
-        run: ./mvnw package -DskipTests
+      - name: Build & Test with Maven Wrapper
+        run: ./mvnw clean package
         shell: bash
