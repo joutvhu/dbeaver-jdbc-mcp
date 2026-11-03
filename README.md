@@ -36,7 +36,7 @@ No manual download required. Just add to your `mcp.json`:
 
 ---
 
-### Option 2: Run via `jbang` (Maven Central)
+### Option 2: Run via `jbang` (Maven Central / GitHub Catalog)
 If you have `jbang` installed:
 
 ```json
@@ -44,10 +44,15 @@ If you have `jbang` installed:
   "mcpServers": {
     "dbeaver": {
       "command": "jbang",
-      "args": ["run", "com.github.joutvhu:dbeaver-jdbc-mcp:1.0.1"]
+      "args": ["run", "dbeaver@joutvhu/dbeaver-jdbc-mcp"]
     }
   }
 }
+```
+
+Or via direct Maven Central GAV coordinates:
+```bash
+jbang run com.github.joutvhu:dbeaver-jdbc-mcp:1.0.1
 ```
 
 ---

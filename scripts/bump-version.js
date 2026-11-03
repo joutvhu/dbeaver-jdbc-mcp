@@ -29,6 +29,7 @@ function syncVersion() {
     const pomXmlPath = path.join(rootDir, 'pom.xml');
     const mcpServerJavaPath = path.join(rootDir, 'src', 'main', 'java', 'com', 'joutvhu', 'dbeaver', 'mcp', 'server', 'McpServer.java');
     const readmePath = path.join(rootDir, 'README.md');
+    const jbangCatalogPath = path.join(rootDir, 'jbang-catalog.json');
 
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     const currentVersion = pkg.version;
@@ -95,9 +96,23 @@ function syncVersion() {
         }
     }
 
-    // 5. Stage files with git if in a git repository
+    // 5. Update jbang-catalog.json
+    if (fs.existsSync(jbangCatalogPath)) {
+        try {
+            const catalog = JSON.parse(fs.readFileSync(jbangCatalogPath, 'utf8'));
+            if (catalog.aliases && catalog.aliases.dbeaver) {
+                catalog.aliases.dbeaver['script-ref'] = `com.github.joutvhu:dbeaver-jdbc-mcp:${targetVersion}`;
+                fs.writeFileSync(jbangCatalogPath, JSON.stringify(catalog, null, 2) + '\n', 'utf8');
+                console.log(`[OK] Updated jbang-catalog.json`);
+            }
+        } catch (e) {
+            console.warn(`[WARN] Failed to update jbang-catalog.json: ${e.message}`);
+        }
+    }
+
+    // 6. Stage files with git if in a git repository
     try {
-        execSync(`git add "${packageJsonPath}" "${pomXmlPath}" "${mcpServerJavaPath}" "${readmePath}"`, {
+        execSync(`git add "${packageJsonPath}" "${pomXmlPath}" "${mcpServerJavaPath}" "${readmePath}" "${jbangCatalogPath}"`, {
             cwd: rootDir,
             stdio: 'ignore'
         });

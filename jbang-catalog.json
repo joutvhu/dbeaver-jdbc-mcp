@@ -1,0 +1,9 @@
+{
+  "catalogs": {},
+  "aliases": {
+    "dbeaver": {
+      "script-ref": "com.github.joutvhu:dbeaver-jdbc-mcp:1.0.1",
+      "description": "Model Context Protocol (MCP) server for DBeaver database connections with dynamic JDBC driver loading"
+    }
+  }
+}
