@@ -61,7 +61,7 @@ try {
 
 let tarballPath = '';
 try {
-    const packOutput = execSync('npm pack', {
+    const packOutput = execSync('npm pack --ignore-scripts', {
         cwd: rootDir,
         encoding: 'utf8'
     }).trim();

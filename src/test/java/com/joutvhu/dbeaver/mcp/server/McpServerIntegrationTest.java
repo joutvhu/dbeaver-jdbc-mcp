@@ -15,15 +15,17 @@ public class McpServerIntegrationTest {
         if (!new File(jarPath).exists()) {
             jarPath = "dbeaver-jdbc-mcp.jar";
         }
-        if (!new File(jarPath).exists()) {
-            System.err.println("Skipping testServerStdioFlow as jar is not built yet.");
-            return;
-        }
 
         String javaHome = System.getProperty("java.home");
         String javaBin = (javaHome != null) ? java.nio.file.Paths.get(javaHome, "bin", "java").toString() : "java";
 
-        ProcessBuilder pb = new ProcessBuilder(javaBin, "-jar", jarPath);
+        ProcessBuilder pb;
+        if (new File(jarPath).exists()) {
+            pb = new ProcessBuilder(javaBin, "-jar", jarPath);
+        } else {
+            String cp = System.getProperty("java.class.path");
+            pb = new ProcessBuilder(javaBin, "-cp", cp, "com.joutvhu.dbeaver.mcp.Main");
+        }
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         Process p = pb.start();
 
