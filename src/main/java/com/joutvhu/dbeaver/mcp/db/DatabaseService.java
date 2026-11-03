@@ -85,7 +85,7 @@ public class DatabaseService {
             }
 
             // Fallback for MySQL/MariaDB: in MySQL, databases are catalogs (TABLE_CAT) and schema (TABLE_SCHEM) is null
-            if (tables.isEmpty() && schemaPattern != null) {
+            if (tables.isEmpty() && schemaPattern != null && isMySqlFamily(meta)) {
                 try (ResultSet rs = meta.getTables(schemaPattern, null, "%", types)) {
                     while (rs.next()) {
                         Map<String, Object> row = new LinkedHashMap<>();
@@ -172,7 +172,7 @@ public class DatabaseService {
                 }
 
                 // Fallback for MySQL/MariaDB: if catalog is null and schema is set, try catalog = schema, schema = null
-                if (catalog == null && schema != null) {
+                if (catalog == null && schema != null && isMySqlFamily(meta)) {
                     try (ResultSet pkRs = meta.getPrimaryKeys(schema, null, tableCandidate)) {
                         while (pkRs.next()) {
                             primaryKeys.add(pkRs.getString("COLUMN_NAME"));
@@ -475,6 +475,17 @@ public class DatabaseService {
                 }
             }
         }
+    }
+
+    private static boolean isMySqlFamily(DatabaseMetaData meta) {
+        try {
+            String prod = meta.getDatabaseProductName();
+            if (prod != null) {
+                String p = prod.toLowerCase();
+                return p.contains("mysql") || p.contains("mariadb");
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     private static String stripQuotes(String s) {
