@@ -177,6 +177,33 @@ public class DBeaverConfigParserTest {
     }
 
     @Test
+    public void testParseDirectWorkspace(@TempDir Path tempDir) throws Exception {
+        Path dbeaverDir = tempDir.resolve(".dbeaver");
+        Files.createDirectories(dbeaverDir);
+
+        String dataSourcesJson = "{\n" +
+                "  \"connections\": {\n" +
+                "    \"direct-conn-1\": {\n" +
+                "      \"name\": \"Direct Project Postgres\",\n" +
+                "      \"driver\": \"postgres\",\n" +
+                "      \"configuration\": {\n" +
+                "        \"host\": \"127.0.0.1\",\n" +
+                "        \"database\": \"mydb\"\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        Files.writeString(dbeaverDir.resolve("data-sources.json"), dataSourcesJson, StandardCharsets.UTF_8);
+
+        DBeaverConfigParser parser = new DBeaverConfigParser(tempDir.toString(), false);
+        List<ConnectionInfo> connections = parser.parseConnections();
+
+        assertEquals(1, connections.size());
+        assertEquals("direct-conn-1", connections.get(0).getId());
+        assertEquals("Direct Project Postgres", connections.get(0).getName());
+    }
+
+    @Test
     public void testDefaultWorkspacePath() {
         String path = DBeaverConfigParser.defaultWorkspacePath();
         assertNotNull(path);

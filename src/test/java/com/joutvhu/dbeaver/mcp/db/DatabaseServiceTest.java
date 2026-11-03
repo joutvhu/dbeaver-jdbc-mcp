@@ -181,6 +181,31 @@ public class DatabaseServiceTest {
     }
 
     @Test
+    public void testQueryArrayColumn() throws Exception {
+        try (Connection conn = DriverManager.getConnection(h2ConnInfo.getUrl(), "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE array_test (id INT PRIMARY KEY, tags INT ARRAY)");
+            stmt.execute("INSERT INTO array_test VALUES (1, ARRAY[10, 20, 30])");
+        }
+
+        Map<String, Object> res = dbService.executeQuery(h2ConnInfo, "SELECT tags FROM array_test", 10);
+        @SuppressWarnings("unchecked")
+        List<List<Object>> rows = (List<List<Object>>) res.get("rows");
+        assertEquals(1, rows.size());
+        Object val = rows.get(0).get(0);
+        assertTrue(val instanceof List);
+        @SuppressWarnings("unchecked")
+        List<Object> list = (List<Object>) val;
+        assertEquals(3, list.size());
+        assertEquals(10, list.get(0));
+
+        try (Connection conn = DriverManager.getConnection(h2ConnInfo.getUrl(), "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DROP TABLE IF EXISTS array_test");
+        }
+    }
+
+    @Test
     public void testGetDatabaseStats() {
         Map<String, Object> stats = dbService.getDatabaseStats(h2ConnInfo);
         assertEquals("h2-test", stats.get("connection_id"));

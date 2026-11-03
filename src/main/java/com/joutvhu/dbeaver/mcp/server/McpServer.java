@@ -673,7 +673,8 @@ public class McpServer {
                         Map<String, Object> debug = new LinkedHashMap<>();
                         debug.put("workspace_path", configParser.getWorkspacePath());
                         File ds = new File(configParser.getWorkspacePath(), "General/.dbeaver/data-sources.json");
-                        debug.put("data_sources_exists", ds.exists());
+                        boolean exists = ds.exists() || new File(configParser.getWorkspacePath(), ".dbeaver/data-sources.json").exists();
+                        debug.put("data_sources_exists", exists);
                         debug.put("read_only_mode", QueryValidator.isReadOnlyMode());
                         debug.put("loaded_driver_classes", DriverRegistry.getInstance().getLoadedDriverClassNames());
                         debug.put("loaded_driver_jars_count", DriverRegistry.getInstance().getLoadedJarPaths().size());

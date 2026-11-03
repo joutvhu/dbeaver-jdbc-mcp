@@ -151,19 +151,29 @@ public class ConnectionInfo {
         copy.readonly = this.readonly;
         copy.folder = this.folder;
         copy.description = this.description;
+        copy.properties = redactMap(this.properties);
+        return copy;
+    }
 
-        Map<String, Object> redactedProps = new HashMap<>();
-        for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
-            String keyLower = entry.getKey().toLowerCase();
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> redactMap(Map<String, Object> map) {
+        if (map == null) return new HashMap<>();
+        Map<String, Object> redacted = new HashMap<>();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            String keyLower = key != null ? key.toLowerCase() : "";
             if (keyLower.contains("password") || keyLower.contains("secret") ||
-                keyLower.contains("token") || keyLower.contains("key")) {
-                redactedProps.put(entry.getKey(), "***REDACTED***");
+                keyLower.contains("token") || keyLower.contains("key") ||
+                keyLower.contains("pwd")) {
+                redacted.put(key, "***REDACTED***");
+            } else if (value instanceof Map) {
+                redacted.put(key, redactMap((Map<String, Object>) value));
             } else {
-                redactedProps.put(entry.getKey(), entry.getValue());
+                redacted.put(key, value);
             }
         }
-        copy.properties = redactedProps;
-        return copy;
+        return redacted;
     }
 
     public static String sanitizeUrl(String url) {
@@ -197,6 +207,10 @@ public class ConnectionInfo {
 
         // Mask parameter-based credentials, e.g. ;password=xxx or ?password=xxx
         sanitized = sanitized.replaceAll("(?i)([?&;](?:password|pwd|secret|token)=)[^&;]+", "$1***REDACTED***");
+
+        // Mask Oracle thin URL credentials, e.g. jdbc:oracle:thin:user/password@host:port:sid
+        sanitized = sanitized.replaceAll("(?i)(thin:[^/@]+)/[^@]+(@)", "$1/***REDACTED***$2");
+
         return sanitized;
     }
 }

@@ -146,11 +146,21 @@ public class DBeaverConfigParser {
 
     private List<File> findDataSourceFiles() {
         List<File> result = new ArrayList<>();
+
+        // Check if workspacePath itself is a project folder containing .dbeaver/data-sources.json
+        File direct = new File(workspacePath, ".dbeaver/data-sources.json");
+        if (!direct.exists()) {
+            direct = new File(workspacePath, ".dbeaver\\data-sources.json");
+        }
+        if (direct.isFile()) {
+            result.add(direct);
+        }
+
         File general = new File(workspacePath, "General/.dbeaver/data-sources.json");
         if (!general.exists()) {
             general = new File(workspacePath, "General\\.dbeaver\\data-sources.json");
         }
-        if (general.isFile()) {
+        if (general.isFile() && !result.contains(general)) {
             result.add(general);
         }
 

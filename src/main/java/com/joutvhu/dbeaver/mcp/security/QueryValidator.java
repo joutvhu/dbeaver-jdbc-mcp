@@ -37,7 +37,7 @@ public class QueryValidator {
 
     // SELECT ... INTO ... table creation
     private static final Pattern SELECT_INTO_PATTERN = Pattern.compile(
-            "^select\\b[\\s\\S]*?\\binto\\s+(?:temporary|temp|table)?\\s*[^;\\s]+",
+            "\\bselect\\b[\\s\\S]*?\\binto\\s+(?:temporary|temp|table)?\\s*[^;\\s]+",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -114,7 +114,7 @@ public class QueryValidator {
         }
 
         // Prevent SELECT INTO table creation
-        if (SELECT_INTO_PATTERN.matcher(prefixChecked).find()) {
+        if (SELECT_INTO_PATTERN.matcher(cleanSql).find()) {
             throw new IllegalArgumentException("SELECT INTO table creation is not allowed in read-only mode.");
         }
     }

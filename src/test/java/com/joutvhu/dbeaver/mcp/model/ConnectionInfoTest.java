@@ -62,6 +62,14 @@ public class ConnectionInfoTest {
         props.put("secretToken", "token-val");
         props.put("apiKey", "key-val");
         props.put("normalOption", "normal-val");
+
+        // Nested properties test
+        Map<String, Object> nested = new HashMap<>();
+        nested.put("innerPassword", "inner-pass");
+        nested.put("innerToken", "inner-tok");
+        nested.put("safeConfig", "safe-val");
+        props.put("auth-properties", nested);
+
         conn.setProperties(props);
 
         ConnectionInfo redacted = conn.redacted();
@@ -78,6 +86,14 @@ public class ConnectionInfoTest {
         assertEquals("***REDACTED***", redacted.getProperties().get("secretToken"));
         assertEquals("***REDACTED***", redacted.getProperties().get("apiKey"));
         assertEquals("normal-val", redacted.getProperties().get("normalOption"));
+
+        // Nested properties masked
+        @SuppressWarnings("unchecked")
+        Map<String, Object> redactedNested = (Map<String, Object>) redacted.getProperties().get("auth-properties");
+        assertNotNull(redactedNested);
+        assertEquals("***REDACTED***", redactedNested.get("innerPassword"));
+        assertEquals("***REDACTED***", redactedNested.get("innerToken"));
+        assertEquals("safe-val", redactedNested.get("safeConfig"));
 
         // Identity and other metadata preserved
         assertEquals("id-1", redacted.getId());
@@ -97,6 +113,12 @@ public class ConnectionInfoTest {
         // User and password in authority
         assertEquals("jdbc:postgresql://dbadmin:***REDACTED***@db.example.com:5432/mydb",
                 ConnectionInfo.sanitizeUrl("jdbc:postgresql://dbadmin:mysecret@db.example.com:5432/mydb"));
+
+        // Oracle thin URL credentials
+        assertEquals("jdbc:oracle:thin:scott/***REDACTED***@localhost:1521:XE",
+                ConnectionInfo.sanitizeUrl("jdbc:oracle:thin:scott/tiger@localhost:1521:XE"));
+        assertEquals("jdbc:oracle:thin:admin/***REDACTED***@//db.oracle.com:1521/ORCL",
+                ConnectionInfo.sanitizeUrl("jdbc:oracle:thin:admin/SecretPass123@//db.oracle.com:1521/ORCL"));
 
         // Password only (e.g. redis or mongo)
         assertEquals("redis://:***REDACTED***@localhost:6379",

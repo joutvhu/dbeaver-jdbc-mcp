@@ -426,12 +426,27 @@ public class DatabaseService {
             }
         }
         if (val instanceof java.sql.Array) {
+            java.sql.Array sqlArray = (java.sql.Array) val;
             try {
-                Object arr = ((java.sql.Array) val).getArray();
+                Object arr = sqlArray.getArray();
                 if (arr instanceof Object[]) {
                     return Arrays.asList((Object[]) arr);
+                } else if (arr != null && arr.getClass().isArray()) {
+                    int len = java.lang.reflect.Array.getLength(arr);
+                    List<Object> list = new ArrayList<>(len);
+                    for (int i = 0; i < len; i++) {
+                        list.add(java.lang.reflect.Array.get(arr, i));
+                    }
+                    return list;
                 }
-            } catch (Exception ignored) {}
+                return String.valueOf(arr);
+            } catch (Exception e) {
+                return val.toString();
+            } finally {
+                try {
+                    sqlArray.free();
+                } catch (Throwable ignored) {}
+            }
         }
         if (val instanceof byte[]) {
             return Base64.getEncoder().encodeToString((byte[]) val);

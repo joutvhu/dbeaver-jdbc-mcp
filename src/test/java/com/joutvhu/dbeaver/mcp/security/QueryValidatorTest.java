@@ -49,6 +49,8 @@ public class QueryValidatorTest {
 
         // SELECT INTO
         assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("SELECT * INTO new_table FROM old_table"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("(SELECT * INTO new_table FROM old_table)"));
+        assertThrows(IllegalArgumentException.class, () -> QueryValidator.validateReadOnlyQuery("WITH cte AS (SELECT 1 AS col) SELECT * INTO new_table FROM cte"));
     }
 
     @Test
